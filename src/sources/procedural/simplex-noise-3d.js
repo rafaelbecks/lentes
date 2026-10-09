@@ -1,9 +1,8 @@
 /**
- * Compact 3D value noise from GLOW
- * (src/shaders/background/glsl/simplex-noise-3d.js).
- * Exposed as `snoise(vec3)`, range about [-1, 1].
+ * Compact 3D value noise (trilinear), exposed as `snoise(vec3)` for Shadertoy-style snippets.
+ * Lighter than full simplex; stable across WebGL2 implementations.
  */
-export const VALUE_NOISE_GLSL = `
+export const SIMPLEX_NOISE_3D_GLSL = `
 float hash3n(float n) { return fract(sin(n) * 43758.5453); }
 float vnoise(vec3 x) {
   vec3 p = floor(x);

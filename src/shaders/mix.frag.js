@@ -1,5 +1,5 @@
 /**
- * Combine up to three camera textures.
+ * Combine up to three processed source textures (alpha = coverage).
  * Blend formulas mirror src/mixer/blend.js.
  * Uncovered pixels (letterbox) do not contribute to a weighted blend.
  */
@@ -12,10 +12,6 @@ uniform sampler2D uTex2;
 uniform float uReady0;
 uniform float uReady1;
 uniform float uReady2;
-uniform float uAspect0;
-uniform float uAspect1;
-uniform float uAspect2;
-uniform float uCanvasAspect;
 uniform int uMode;
 uniform int uSolo;
 uniform int uFadeA;
@@ -27,21 +23,9 @@ uniform int uBlend;
 in vec2 vUv;
 out vec4 fragColor;
 
-vec4 take(sampler2D tex, float ready, float srcAspect) {
-  if (ready < 0.5 || srcAspect <= 0.0 || uCanvasAspect <= 0.0) {
-    return vec4(0.0);
-  }
-  float spanX = 1.0;
-  float spanY = 1.0;
-  if (srcAspect > uCanvasAspect) spanY = uCanvasAspect / srcAspect;
-  else spanX = srcAspect / uCanvasAspect;
-  float x0 = 0.5 - spanX * 0.5;
-  float y0 = 0.5 - spanY * 0.5;
-  if (vUv.x < x0 || vUv.x > x0 + spanX || vUv.y < y0 || vUv.y > y0 + spanY) {
-    return vec4(0.0);
-  }
-  vec2 suv = vec2((vUv.x - x0) / spanX, (vUv.y - y0) / spanY);
-  return vec4(texture(tex, suv).rgb, 1.0);
+vec4 take(sampler2D tex, float ready) {
+  if (ready < 0.5) return vec4(0.0);
+  return texture(tex, vUv);
 }
 
 vec4 pick(int index, vec4 s0, vec4 s1, vec4 s2) {
@@ -58,9 +42,9 @@ vec3 pairBlend(vec3 a, vec3 b, int mode) {
 }
 
 void main() {
-  vec4 s0 = take(uTex0, uReady0, uAspect0);
-  vec4 s1 = take(uTex1, uReady1, uAspect1);
-  vec4 s2 = take(uTex2, uReady2, uAspect2);
+  vec4 s0 = take(uTex0, uReady0);
+  vec4 s1 = take(uTex1, uReady1);
+  vec4 s2 = take(uTex2, uReady2);
   vec3 color = vec3(0.0);
 
   if (uMode == 0) {
