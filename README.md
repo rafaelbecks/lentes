@@ -2,7 +2,7 @@
 
 Experimental real-time video mixer for [Luminode Studio](https://luminode.studio/). The name is LENTE. Its Spanish acronym is not finalized.
 
-LENTE captures up to three local cameras, mixes them on the GPU, and runs a small stack of effects. It is an instrument, not a timeline editor.
+LENTE mixes up to three sources (local cameras or GLOW procedural shaders) on the GPU and runs them through a reorderable chain of effects. It is an instrument, not a timeline editor.
 
 ## Run
 
@@ -22,55 +22,120 @@ npm run lint
 
 ## Use
 
-1. Choose a camera on an input and press Connect. Allow the browser when it asks. The other inputs can stay empty.
-2. Mix with Solo, Crossfade, or Blend. Blend modes are normal, additive, multiply, and difference.
-3. Color uses the same brightness, contrast, and saturation levels as GLOW: **100** leaves the image unchanged. Threshold and posterize sit in that pass.
-4. Texture holds ordered dither (from Cartografías) and value-noise grain (from GLOW). Effects holds the color overlay and the pass order.
-5. Double-click the preview, or press `F`, for fullscreen. `⌘I` / `Ctrl+I` hides the interface.
+The bottom panel is the mixer. It works like GLOW's.
 
-Output defaults to 1280×720. 1080p is in the OUTPUT folder. Reconnect an input after changing its requested size or frame rate.
+1. **Input strips.** Each strip has a source menu: a camera, a GLOW shader (Portal, Disco Sun Vortex, Balatro, Chroma gradients), or Off. Picking a camera connects it. The first pick asks for camera permission.
+2. **Strip buttons.**
+   - `INV` inverts colors, `↔` flips horizontally, `↕` flips vertically.
+   - `M` mutes, `S` solos, and `A` / `B` assign the strip to a crossfade side.
+   - The vertical fader is the input's weight in Blend mode.
+3. **Mix section.** Choose Solo, X·Fade or Blend, a blend mode (normal, additive, multiply, difference), and the crossfader. Double-click the crossfader to center it.
+4. **Effect chain.** Effects run left to right, between MIX and OUT.
+   - Drag a node to reorder the chain.
+   - Its `on` / `off` toggle bypasses the effect.
+   - Click a node to edit it in the FX tab.
+5. **Side panel tabs.**
+   - **SOURCES:** per-input gain, saturation, hue, invert and flips; shader speed; camera format.
+   - **FX:** the selected effect.
+   - **LFO:** modulators.
+   - **OUTPUT:** render size.
+6. **On the stage.** Drag the glass pane (single mode) or the shape mask directly on the output. Double-click or press `F` for fullscreen. `⌘I` / `Ctrl+I` hides the interface.
+
+### Effects
+
+| Effect | Notes |
+| --- | --- |
+| Color | Brightness / contrast / saturation on GLOW's 0–200 scale (100 = unchanged), threshold, posterize |
+| Chromatic | GLOW's chromatic-aberration SVG filter as a shader (linear-light gains, offset red and blue, screen blend) |
+| Glass | GLOW liquid glass: a single refracting pane, or a brick wall |
+| Rain | GLOW rain screen refraction |
+| Mask | Circle, square, triangle, polygon, star, ring. Size, stretch, rotation, softness, invert. Outside is black, a color, or another input |
+| Dither | Cartografías ordered Bayer dither and GLOW table crush |
+| Grain | grained.js grain (pattern, density, grain size, opacity, chaos, steps), as in GLOW and Cartografías |
+| Overlay | Flat color in multiply, screen, overlay, difference, or additive |
+
+### LFO
+
+Add LFOs in the LFO tab (MUSGO's modulation system).
+
+- **Waveforms:** sine, square, triangle, sawtooth, or a cubic-bezier curve.
+- **Targets:** any slider or switch in the mixer (crossfade, faders), the sources (gain, hue, saturation, shader speed, invert, flips), and every effect, including turning an effect on and off.
+- **Controls:** rate, depth and offset. Switch targets also have a threshold.
+- **Monitor:** a live waveform display for each LFO.
+
+Modulation is applied only while drawing a frame. It never changes the saved values.
+
+### Undo
+
+**Edit → Undo / Redo** (`⌘Z`, `⇧⌘Z`, `Ctrl+Y`) and **Edit → History…** follow MUSGO:
+
+- History keeps the last 20 moments for each project.
+- Edits are committed half a second after they settle.
+- History is kept in this browser.
 
 ## Projects
 
-Projects are pretty-printed JSON with a `.lente` extension. Schema version is `1`.
+Projects are pretty-printed JSON with a `.lente` extension. The schema version is `2`. Version 1 files upgrade on open: noise becomes the grained.js grain, and the new effects are added switched off.
 
 - **File → New / Open / Save / Save As**, or `⌘N` `⌘O` `⌘S` `⇧⌘S`
 - Drop a `.lente` file on the window
 - Recent projects are remembered in this browser
 
-A project stores mixer settings, effect order and parameters, output size, and camera device ids as hints. It does not store camera streams. If a camera is missing on another machine, the mix and effects still load and that input is marked unavailable.
+A project stores:
+
+- the sources (camera device ids as hints, shader choices, per-source operations);
+- the mixer, including faders and mutes;
+- effect order and parameters;
+- LFOs;
+- the output size.
+
+It does not store camera streams. If a camera is missing on another machine, everything else still loads and that input is marked unavailable.
 
 Browsers with the File System Access API write the file in place. Others download it, and open through the file picker.
 
 ## Layout
 
 ```
-src/inputs/       cameras and device enumeration
-src/mixer/        blend math shared with the mix shader
-src/renderer/     one WebGL2 context, ping-pong framebuffers
-src/effects/      parameter schemas, independent of the UI
-src/shaders/      fullscreen passes
-src/projects/     .lente schema, migrations, file menu
-src/ui/           menu, Tweakpane, input strip
+src/inputs/        cameras and device enumeration
+src/sources/       GLOW procedural shaders used as inputs
+src/mixer/         blend math shared with the mix shader
+src/renderer/      one WebGL2 context, ping-pong framebuffers
+src/effects/       effect registry: parameter schemas, independent of the UI
+src/shaders/       fullscreen passes
+src/modulation/    LFOs and their targets
+src/history/       undo / redo memento stack
+src/projects/      .lente schema, migrations, file menu
+src/ui/            menu, mixer strips, effect chain, Tweakpane tabs, modals
 ```
 
-The render order is: camera textures → mixer → effect stack → canvas. Effect order is the `effects` array in the project file. Passes that are off, and a color grade sitting at identity, are skipped.
+The render order is:
+
+1. sources (camera texture, or a procedural shader rendered into a framebuffer);
+2. a per-source pass (fit, flips, gain, saturation, hue, invert);
+3. the mixer;
+4. the effect chain, in `effects` array order;
+5. the canvas.
+
+Bypassed passes, and a color grade sitting at identity, are skipped.
+
+`scripts/pipeline-smoke.html` and `scripts/ui-smoke.html` are browser checks. Open them from the local server and read the `data-*` attributes on `#result`.
 
 ## Provenance
 
 | From | Used here |
 | --- | --- |
-| GLOW | Fullscreen triangle, value noise, brightness/contrast/saturation levels, blend-mode names, Tweakpane theme, File menu and `.glow`-style JSON projects |
-| Cartografías Imposibles | Ordered Bayer dither (`OrderedDitherShader`, including the ×3 gain) and the SVG table-value mapping |
-| MUSGO | Perlin/FBM and the ocean stay in the Three.js scene. Not imported. The effect contract has an `auxiliary` list for a future distortion texture. |
+| GLOW | Glass and rain shaders, procedural sources, chromatic-aberration filter, effect chain UI, mixer strips and vertical faders, color levels, blend-mode names, app menu, JSON projects |
+| MUSGO | LFO system and tab, undo history and history modal, Edit menu, tab styling, IBM Plex / Analo Grotesk type |
+| Cartografías Imposibles | Ordered Bayer dither (with the ×3 gain), SVG table-value mapping, grained.js grain |
+| Luminode Studio | Suite cursor |
 
-GLOW is GPL-3.0. LENTE is GPL-3.0-or-later. The dither matrices remain MIT; see `NOTICE.md`.
+GLOW is GPL-3.0. LENTE is GPL-3.0-or-later. The Rain and Disco Sun Vortex shaders are CC BY-NC-SA and Analo Grotesk is a trial font; see `NOTICE.md`.
 
 ## Limits
 
-- Three local cameras. No network streaming, no video files yet.
-- Practical target is about 720p30 per camera. 1080p depends on the machine.
-- Dither, grain, and overlay are global. Per-input effect chains are not built yet.
+- Three sources. No network streaming, no video files yet.
+- Practical target is about 720p30 per camera. 1080p depends on the machine. Each shader source renders at output size.
+- Effects are global. Per-input effect chains are not built yet.
 - Ocean refraction is not implemented. MUSGO's water is a Three.js `Water` object plus mesh displacement, not a reusable 2D field.
 - Device ids are not stable across computers, and some browsers hide labels until permission is granted.
-- `grained.js` is not bundled. Grain is the GLOW value-noise shader, with opacity and speed in the same spirit as the Cartografías overlay.
+- Faders follow the saved value; they do not move with LFO modulation.

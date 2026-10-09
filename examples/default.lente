@@ -1,43 +1,75 @@
 {
   "format": "lente",
-  "version": 1,
-  "name": "Untitled",
+  "version": 2,
+  "name": "Default",
   "inputs": [
     {
       "slot": 0,
+      "kind": "camera",
       "deviceId": "",
       "label": "",
+      "shader": "Portal",
+      "speed": 1,
       "width": 1280,
       "height": 720,
-      "frameRate": 30
+      "frameRate": 30,
+      "invert": false,
+      "flipX": false,
+      "flipY": false,
+      "gain": 1,
+      "saturation": 1,
+      "hue": 0
     },
     {
       "slot": 1,
+      "kind": "shader",
       "deviceId": "",
       "label": "",
+      "shader": "Portal",
+      "speed": 1,
       "width": 1280,
       "height": 720,
-      "frameRate": 30
+      "frameRate": 30,
+      "invert": false,
+      "flipX": false,
+      "flipY": false,
+      "gain": 1,
+      "saturation": 1,
+      "hue": 0
     },
     {
       "slot": 2,
+      "kind": "camera",
       "deviceId": "",
       "label": "",
+      "shader": "Portal",
+      "speed": 1,
       "width": 1280,
       "height": 720,
-      "frameRate": 30
+      "frameRate": 30,
+      "invert": false,
+      "flipX": false,
+      "flipY": false,
+      "gain": 1,
+      "saturation": 1,
+      "hue": 0
     }
   ],
   "mixer": {
-    "mode": "solo",
+    "mode": "blend",
     "solo": 0,
     "crossfadeA": 0,
     "crossfadeB": 1,
     "crossfade": 0.5,
     "weights": [
       1,
-      0,
+      0.5,
       0
+    ],
+    "mutes": [
+      false,
+      false,
+      false
     ],
     "blend": "normal"
   },
@@ -51,6 +83,69 @@
         "saturation": 100,
         "threshold": 0,
         "posterize": 0
+      }
+    },
+    {
+      "id": "chromatic",
+      "enabled": false,
+      "params": {
+        "amount": 1,
+        "redShift": 2,
+        "blueShift": -3,
+        "redGain": 4,
+        "greenGain": 3,
+        "blueGain": 10
+      }
+    },
+    {
+      "id": "glass",
+      "enabled": false,
+      "params": {
+        "mode": "single",
+        "centerX": 0.5,
+        "centerY": 0.5,
+        "width": 200,
+        "height": 200,
+        "radius": 27,
+        "thickness": 200,
+        "bezel": 60,
+        "ior": 3,
+        "blur": 9.5,
+        "specular": 0.35,
+        "tint": 0,
+        "shadow": 0,
+        "brickSize": 200,
+        "brickOffsetX": 0,
+        "brickOffsetY": 0,
+        "brickGap": 8
+      }
+    },
+    {
+      "id": "rain",
+      "enabled": false,
+      "params": {
+        "distortion": 0.05,
+        "scale": 25,
+        "timeScale": 1,
+        "patternDrift": 0.1,
+        "sharpness": 1
+      }
+    },
+    {
+      "id": "mask",
+      "enabled": false,
+      "params": {
+        "shape": "circle",
+        "centerX": 0.5,
+        "centerY": 0.5,
+        "size": 0.6,
+        "stretch": 1,
+        "rotation": 0,
+        "sides": 5,
+        "softness": 0.01,
+        "invert": false,
+        "outside": "black",
+        "color": "#000000"
       }
     },
     {
@@ -71,11 +166,16 @@
       "id": "noise",
       "enabled": false,
       "params": {
-        "amount": 0.08,
-        "scale": 240,
-        "speed": 1,
-        "seed": 0,
-        "animate": true
+        "animate": true,
+        "opacity": 0.05,
+        "patternWidth": 100,
+        "patternHeight": 100,
+        "density": 1,
+        "grainWidth": 1,
+        "grainHeight": 1,
+        "chaos": 0.5,
+        "speed": 20,
+        "seed": 0
       }
     },
     {
@@ -88,12 +188,11 @@
       }
     }
   ],
+  "modulation": {
+    "modulators": []
+  },
   "output": {
     "width": 1280,
     "height": 720
-  },
-  "meta": {
-    "app": "lente",
-    "appVersion": "0.1.0"
   }
 }
