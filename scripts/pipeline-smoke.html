@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>LENTE pipeline smoke</title>
+  </head>
+  <body>
+    <canvas id="output"></canvas>
+    <p id="result">running</p>
+    <script type="module">
+      import { createRenderer } from '../src/renderer/renderer.js'
+      import { createDefaultProject } from '../src/projects/schema.js'
+
+      const result = document.querySelector('#result')
+
+      function pixel (gl, x, y) {
+        const data = new Uint8Array(4)
+        gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, data)
+        return `${data[0]},${data[1]},${data[2]}`
+      }
+
+      try {
+        const paint = document.createElement('canvas')
+        paint.width = 64
+        paint.height = 64
+        const ctx = paint.getContext('2d')
+        ctx.fillStyle = '#ff0000'
+        ctx.fillRect(0, 0, 64, 32)
+        ctx.fillStyle = '#0000ff'
+        ctx.fillRect(0, 32, 64, 32)
+        const video = document.createElement('video')
+        video.muted = true
+        video.playsInline = true
+        video.srcObject = paint.captureStream(30)
+        await video.play()
+        const started = performance.now()
+        while (video.readyState < 2 || !video.videoWidth) {
+          if (performance.now() - started > 2000) throw new Error('test video never produced a frame')
+          await new Promise((resolve) => requestAnimationFrame(resolve))
+        }
+
+        const canvas = document.querySelector('#output')
+        const renderer = createRenderer(canvas)
+        const state = createDefaultProject()
+        state.output.width = 128
+        state.output.height = 128
+        const videos = [video, null, null]
+        const gl = renderer.gl
+        renderer.render({ videos, state, time: 0 })
+        const top = pixel(gl, 64, 120)
+        const bottom = pixel(gl, 64, 8)
+
+        state.effects[0].params.brightness = 0
+        renderer.render({ videos, state, time: 0 })
+        const dark = pixel(gl, 64, 120)
+
+        state.effects[0].params.brightness = 100
+        const dither = state.effects.find((effect) => effect.id === 'dither')
+        dither.enabled = true
+        dither.params.amount = 1
+        dither.params.mapSize = 2
+        dither.params.scale = 1
+        renderer.render({ videos, state, time: 0 })
+        const dithered = pixel(gl, 64, 120)
+
+        result.dataset.top = top
+        result.dataset.bottom = bottom
+        result.dataset.dark = dark
+        result.dataset.dither = dithered
+        result.textContent = 'done'
+      } catch (error) {
+        result.dataset.error = error.message
+        result.textContent = error.message
+      }
+    </script>
+  </body>
+</html>

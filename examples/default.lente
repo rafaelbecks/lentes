@@ -1,0 +1,99 @@
+{
+  "format": "lente",
+  "version": 1,
+  "name": "Untitled",
+  "inputs": [
+    {
+      "slot": 0,
+      "deviceId": "",
+      "label": "",
+      "width": 1280,
+      "height": 720,
+      "frameRate": 30
+    },
+    {
+      "slot": 1,
+      "deviceId": "",
+      "label": "",
+      "width": 1280,
+      "height": 720,
+      "frameRate": 30
+    },
+    {
+      "slot": 2,
+      "deviceId": "",
+      "label": "",
+      "width": 1280,
+      "height": 720,
+      "frameRate": 30
+    }
+  ],
+  "mixer": {
+    "mode": "solo",
+    "solo": 0,
+    "crossfadeA": 0,
+    "crossfadeB": 1,
+    "crossfade": 0.5,
+    "weights": [
+      1,
+      0,
+      0
+    ],
+    "blend": "normal"
+  },
+  "effects": [
+    {
+      "id": "color",
+      "enabled": true,
+      "params": {
+        "brightness": 100,
+        "contrast": 100,
+        "saturation": 100,
+        "threshold": 0,
+        "posterize": 0
+      }
+    },
+    {
+      "id": "dither",
+      "enabled": false,
+      "params": {
+        "mapSize": 4,
+        "scale": 4,
+        "amount": 1,
+        "saturate": 1,
+        "crush": 0,
+        "tableR": 0,
+        "tableG": 0,
+        "tableB": 0
+      }
+    },
+    {
+      "id": "noise",
+      "enabled": false,
+      "params": {
+        "amount": 0.08,
+        "scale": 240,
+        "speed": 1,
+        "seed": 0,
+        "animate": true
+      }
+    },
+    {
+      "id": "overlay",
+      "enabled": false,
+      "params": {
+        "mode": "overlay",
+        "color": "#aef0b8",
+        "opacity": 0.2
+      }
+    }
+  ],
+  "output": {
+    "width": 1280,
+    "height": 720
+  },
+  "meta": {
+    "app": "lente",
+    "appVersion": "0.1.0"
+  }
+}
