@@ -1,12 +1,22 @@
 /**
- * File / View / Help bar.
- * Same interaction as GLOW's app menu: click to open, hover to move, escape to close.
- * Icons are omitted so LENTE does not depend on an icon font.
+ * LENTE / File / Edit / View bar.
+ * Same interaction as GLOW's and MUSGO's app menus: click to open, hover to
+ * move, escape to close. Items may be checkboxes, separators, or carry an
+ * `enabled()` predicate (MUSGO Edit menu).
  */
 export function createAppMenu ({ parent, actions = {} } = {}) {
   if (!parent) return { destroy () {}, refresh () {} }
 
   const menus = [
+    {
+      id: 'lente',
+      label: 'LENTE',
+      brand: true,
+      items: [
+        { id: 'about', label: 'About LENTE' },
+        { id: 'studio', label: 'luminode.studio ↗' }
+      ]
+    },
     {
       id: 'file',
       label: 'File',
@@ -14,8 +24,19 @@ export function createAppMenu ({ parent, actions = {} } = {}) {
         { id: 'new', label: 'New', shortcut: '⌘N' },
         { id: 'open', label: 'Open…', shortcut: '⌘O' },
         { id: 'recent', label: 'Recent…' },
+        { type: 'separator' },
         { id: 'save', label: 'Save', shortcut: '⌘S' },
         { id: 'saveAs', label: 'Save As…', shortcut: '⇧⌘S' }
+      ]
+    },
+    {
+      id: 'edit',
+      label: 'Edit',
+      items: [
+        { id: 'undo', label: 'Undo', shortcut: '⌘Z', enabled: () => actions.canUndo?.() },
+        { id: 'redo', label: 'Redo', shortcut: '⇧⌘Z', enabled: () => actions.canRedo?.() },
+        { type: 'separator' },
+        { id: 'history', label: 'History…' }
       ]
     },
     {
@@ -30,13 +51,6 @@ export function createAppMenu ({ parent, actions = {} } = {}) {
           shortcut: '⌘I',
           checked: () => actions.isClean?.()
         }
-      ]
-    },
-    {
-      id: 'help',
-      label: 'Help',
-      items: [
-        { id: 'about', label: 'About LENTE' }
       ]
     }
   ]
@@ -55,15 +69,22 @@ export function createAppMenu ({ parent, actions = {} } = {}) {
     }
   }
 
+  function findItem (menuId, itemId) {
+    return menus.find((entry) => entry.id === menuId)?.items.find((entry) => entry.id === itemId)
+  }
+
   function refresh (root) {
     const scope = root ? [root] : [...roots.values()]
     for (const node of scope) {
-      node.querySelectorAll('[data-check]').forEach((button) => {
-        const menu = menus.find((entry) => entry.id === node.dataset.menu)
-        const item = menu?.items.find((entry) => entry.id === button.dataset.action)
-        const on = Boolean(item?.checked?.())
-        button.classList.toggle('is-checked', on)
-        button.setAttribute('aria-checked', on ? 'true' : 'false')
+      node.querySelectorAll('.app-menu__action').forEach((button) => {
+        const item = findItem(node.dataset.menu, button.dataset.action)
+        if (!item) return
+        if (item.type === 'checkbox') {
+          const on = Boolean(item.checked?.())
+          button.classList.toggle('is-checked', on)
+          button.setAttribute('aria-checked', on ? 'true' : 'false')
+        }
+        if (item.enabled) button.disabled = !item.enabled()
       })
     }
   }
@@ -102,7 +123,7 @@ export function createAppMenu ({ parent, actions = {} } = {}) {
     root.dataset.menu = menu.id
     const trigger = document.createElement('button')
     trigger.type = 'button'
-    trigger.className = 'app-menu__trigger'
+    trigger.className = menu.brand ? 'app-menu__trigger app-menu__brand' : 'app-menu__trigger'
     trigger.textContent = menu.label
     trigger.setAttribute('aria-haspopup', 'true')
     trigger.setAttribute('aria-expanded', 'false')
@@ -117,12 +138,18 @@ export function createAppMenu ({ parent, actions = {} } = {}) {
     panel.className = 'app-menu__dropdown'
     panel.setAttribute('role', 'menu')
     for (const item of menu.items) {
+      if (item.type === 'separator') {
+        const line = document.createElement('div')
+        line.className = 'app-menu__separator'
+        line.setAttribute('role', 'separator')
+        panel.appendChild(line)
+        continue
+      }
       const button = document.createElement('button')
       button.type = 'button'
       button.className = 'app-menu__action'
       button.dataset.action = item.id
       button.setAttribute('role', item.type === 'checkbox' ? 'menuitemcheckbox' : 'menuitem')
-      if (item.type === 'checkbox') button.dataset.check = '1'
       button.innerHTML = '<span class="app-menu__label"></span><span class="app-menu__shortcut"></span><span class="app-menu__check" aria-hidden="true"></span>'
       button.querySelector('.app-menu__label').textContent = item.label
       button.querySelector('.app-menu__shortcut').textContent = item.shortcut || ''

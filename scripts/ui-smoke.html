@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>LENTE UI smoke</title>
+  </head>
+  <body>
+    <iframe id="app" src="../index.html" width="1600" height="1000"></iframe>
+    <p id="result">running</p>
+    <script type="module">
+      const result = document.querySelector('#result')
+      const frame = document.querySelector('#app')
+      const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+      const errors = []
+
+      async function until (check, ms = 4000) {
+        const start = performance.now()
+        while (!check()) {
+          if (performance.now() - start > ms) throw new Error('timed out')
+          await wait(30)
+        }
+      }
+
+      try {
+        await new Promise((resolve) => frame.addEventListener('load', resolve, { once: true }))
+        const win = frame.contentWindow
+        const doc = frame.contentDocument
+        win.addEventListener('error', (event) => errors.push(event.message))
+        win.addEventListener('unhandledrejection', (event) => errors.push(String(event.reason)))
+        await until(() => doc.querySelector('#boot')?.dataset.frame === '1')
+        const out = {}
+        const key = (k, extra = {}) => win.dispatchEvent(new win.KeyboardEvent('keydown', { key: k, metaKey: true, bubbles: true, ...extra }))
+
+        const select = doc.querySelectorAll('.mixer-strip-source')[0]
+        select.value = 'shader:Balatro'
+        select.dispatchEvent(new win.Event('change'))
+        await wait(50)
+        out.source = doc.querySelectorAll('.mixer-strip-luminode')[0].textContent
+        out.hint = String(doc.querySelector('#hint').hidden)
+
+        const glassToggle = () => doc.querySelector('.effect-node[data-layer-id="glass"] .effect-node-toggle')
+        glassToggle().click()
+        await wait(50)
+        out.glassOn = glassToggle().textContent
+        await wait(650)
+        out.title = doc.querySelector('#project-name').textContent
+
+        key('z')
+        await wait(100)
+        out.afterUndo = glassToggle().textContent
+        key('z', { shiftKey: true })
+        await wait(100)
+        out.afterRedo = glassToggle().textContent
+
+        const fader = doc.querySelectorAll('.mixer-fader')[1]
+        fader.value = '0.7'
+        fader.dispatchEvent(new win.Event('input'))
+        await wait(50)
+        out.faderOut = doc.querySelectorAll('.mixer-strip-opacity output')[1].textContent
+
+        const tabs = [...doc.querySelectorAll('.tp-tbiv_b')]
+        tabs.find((tab) => tab.textContent.includes('LFO'))?.click()
+        await wait(50)
+        const add = [...doc.querySelectorAll('.tp-btnv_b')].find((button) => button.textContent === 'Add LFO')
+        add.click()
+        await wait(200)
+        out.lfoFolders = String([...doc.querySelectorAll('.tp-fldv_t')].filter((node) => /^LFO \d/.test(node.textContent)).length)
+        out.waveform = String(Boolean(doc.querySelector('.tp-wfmv')))
+
+        doc.querySelector('.effect-node[data-layer-id="mask"]').dispatchEvent(new win.PointerEvent('pointerdown', { button: 0, bubbles: true, pointerId: 1 }))
+        win.dispatchEvent(new win.PointerEvent('pointerup', { bubbles: true, pointerId: 1 }))
+        await wait(50)
+        out.fxTitle = [...doc.querySelectorAll('.tp-fldv_t')].map((node) => node.textContent).find((text) => text.includes('MASK')) || ''
+
+        const editMenu = [...doc.querySelectorAll('.app-menu__trigger')].map((node) => node.textContent).join(' ')
+        out.menu = editMenu
+        out.history = String(win.document.querySelector('.history-modal') !== null)
+        Object.assign(result.dataset, out)
+        result.dataset.errors = errors.join(' | ') || 'none'
+        result.textContent = 'done'
+      } catch (error) {
+        result.dataset.errors = errors.join(' | ') || 'none'
+        result.dataset.error = error.message
+        result.textContent = error.message
+      }
+    </script>
+  </body>
+</html>

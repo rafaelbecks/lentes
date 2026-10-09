@@ -10,6 +10,8 @@
     <script type="module">
       import { createRenderer } from '../src/renderer/renderer.js'
       import { createDefaultProject } from '../src/projects/schema.js'
+      import { EFFECT_DEFINITIONS } from '../src/effects/registry.js'
+      import { PROCEDURAL_IDS } from '../src/sources/procedural/index.js'
 
       const result = document.querySelector('#result')
 
@@ -41,32 +43,90 @@
 
         const canvas = document.querySelector('#output')
         const renderer = createRenderer(canvas)
+        const gl = renderer.gl
         const state = createDefaultProject()
         state.output.width = 128
         state.output.height = 128
-        const videos = [video, null, null]
-        const gl = renderer.gl
-        renderer.render({ videos, state, time: 0 })
-        const top = pixel(gl, 64, 120)
-        const bottom = pixel(gl, 64, 8)
+        const sources = [{ video, live: true }, { video: null, live: false }, { video: null, live: false }]
+        let time = 0
+        const draw = () => renderer.render({ sources, state, time: (time += 1 / 30) })
+        const out = {}
+        const input = state.inputs[0]
+        const effect = (id) => state.effects.find((entry) => entry.id === id)
 
-        state.effects[0].params.brightness = 0
-        renderer.render({ videos, state, time: 0 })
-        const dark = pixel(gl, 64, 120)
+        draw()
+        out.top = pixel(gl, 64, 120)
+        out.bottom = pixel(gl, 64, 8)
 
-        state.effects[0].params.brightness = 100
-        const dither = state.effects.find((effect) => effect.id === 'dither')
+        input.invert = true
+        draw()
+        out.inverted = pixel(gl, 64, 120)
+        input.invert = false
+        input.flipY = true
+        draw()
+        out.flipped = pixel(gl, 64, 120)
+        input.flipY = false
+        state.mixer.mutes[0] = true
+        draw()
+        out.muted = pixel(gl, 64, 120)
+        state.mixer.mutes[0] = false
+
+        effect('color').params.brightness = 0
+        draw()
+        out.dark = pixel(gl, 64, 120)
+        effect('color').params.brightness = 100
+
+        const mask = effect('mask')
+        mask.enabled = true
+        mask.params.centerY = 0.25
+        mask.params.size = 0.3
+        draw()
+        out.maskInside = pixel(gl, 64, 96)
+        out.maskOutside = pixel(gl, 2, 126)
+        mask.params.outside = 'color'
+        mask.params.color = '#00ff00'
+        draw()
+        out.maskColor = pixel(gl, 2, 126)
+        mask.enabled = false
+
+        const dither = effect('dither')
         dither.enabled = true
-        dither.params.amount = 1
         dither.params.mapSize = 2
         dither.params.scale = 1
-        renderer.render({ videos, state, time: 0 })
-        const dithered = pixel(gl, 64, 120)
+        draw()
+        out.dither = pixel(gl, 64, 120)
+        dither.enabled = false
 
-        result.dataset.top = top
-        result.dataset.bottom = bottom
-        result.dataset.dark = dark
-        result.dataset.dither = dithered
+        const errors = []
+        for (const definition of EFFECT_DEFINITIONS) {
+          for (const entry of state.effects) entry.enabled = entry.id === definition.id
+          draw()
+          const code = gl.getError()
+          if (code !== gl.NO_ERROR) errors.push(`${definition.id}:${code}`)
+        }
+        for (const entry of state.effects) entry.enabled = true
+        draw()
+        if (gl.getError() !== gl.NO_ERROR) errors.push('all-effects')
+        for (const entry of state.effects) entry.enabled = entry.id === 'color'
+
+        state.mixer.mode = 'solo'
+        state.mixer.solo = 1
+        state.inputs[1].kind = 'shader'
+        const shaders = []
+        for (const id of PROCEDURAL_IDS) {
+          state.inputs[1].shader = id
+          draw()
+          draw()
+          const code = gl.getError()
+          if (code !== gl.NO_ERROR) errors.push(`${id}:${code}`)
+          const samples = [pixel(gl, 32, 32), pixel(gl, 64, 64), pixel(gl, 96, 96), pixel(gl, 20, 100)]
+          const lit = samples.some((value) => value !== '0,0,0')
+          shaders.push(`${id}:${lit ? 'lit' : 'black'}`)
+        }
+
+        Object.assign(result.dataset, out)
+        result.dataset.shaders = shaders.join(' ')
+        result.dataset.errors = errors.join(' ') || 'none'
         result.textContent = 'done'
       } catch (error) {
         result.dataset.error = error.message
