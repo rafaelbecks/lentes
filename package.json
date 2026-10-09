@@ -1,0 +1,36 @@
+{
+  "name": "lente",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LENTE — experimental real-time video mixer. Luminode Studio.",
+  "type": "module",
+  "author": "Rafael Becerra",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "start": "python3 -m http.server 8010",
+    "test": "node --test",
+    "lint": "standard"
+  },
+  "dependencies": {
+    "tweakpane": "4.0.5"
+  },
+  "devDependencies": {
+    "standard": "17.1.2"
+  },
+  "standard": {
+    "globals": [
+      "Blob",
+      "File",
+      "HTMLElement",
+      "HTMLVideoElement",
+      "MediaStream",
+      "URL",
+      "document",
+      "indexedDB",
+      "localStorage",
+      "navigator",
+      "requestAnimationFrame",
+      "window"
+    ]
+  }
+}
