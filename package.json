@@ -1,6 +1,6 @@
 {
   "name": "lente",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "LENTE — experimental real-time video mixer. Luminode Studio.",
   "type": "module",
@@ -24,7 +24,9 @@
       "HTMLElement",
       "HTMLVideoElement",
       "MediaStream",
+      "ResizeObserver",
       "URL",
+      "cancelAnimationFrame",
       "document",
       "indexedDB",
       "localStorage",

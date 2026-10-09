@@ -1,11 +1,14 @@
 import { defaultEffects } from '../effects/registry.js'
 
-export const SCHEMA_VERSION = 1
-export const APP_VERSION = '0.1.0'
+export const SCHEMA_VERSION = 2
+export const APP_VERSION = '0.2.0'
 export const LENTE_EXTENSION = '.lente'
 export const INPUT_COUNT = 3
 
+export const SOURCE_KINDS = ['none', 'camera', 'shader']
+
 export function clampNumber (value, min, max, fallback) {
+  if (value === null || value === '' || typeof value === 'boolean') return fallback
   const number = Number(value)
   if (!Number.isFinite(number)) return fallback
   return Math.min(max, Math.max(min, number))
@@ -14,11 +17,20 @@ export function clampNumber (value, min, max, fallback) {
 export function createInput (slot) {
   return {
     slot,
+    kind: 'camera',
     deviceId: '',
     label: '',
+    shader: 'Portal',
+    speed: 1,
     width: 1280,
     height: 720,
-    frameRate: 30
+    frameRate: 30,
+    invert: false,
+    flipX: false,
+    flipY: false,
+    gain: 1,
+    saturation: 1,
+    hue: 0
   }
 }
 
@@ -35,15 +47,22 @@ export function createDefaultProject () {
       crossfadeB: 1,
       crossfade: 0.5,
       weights: [1, 0, 0],
+      mutes: [false, false, false],
       blend: 'normal'
     },
     effects: defaultEffects(),
+    modulation: { modulators: [] },
     output: {
       width: 1280,
       height: 720
     }
   }
 }
+
+const INPUT_KEYS = [
+  'kind', 'deviceId', 'label', 'shader', 'speed', 'width', 'height', 'frameRate',
+  'invert', 'flipX', 'flipY', 'gain', 'saturation', 'hue'
+]
 
 export function serializeProject (state) {
   return {
@@ -52,14 +71,9 @@ export function serializeProject (state) {
     name: state.name || 'Untitled',
     inputs: [0, 1, 2].map((index) => {
       const input = state.inputs[index] || createInput(index)
-      return {
-        slot: index,
-        deviceId: typeof input.deviceId === 'string' ? input.deviceId : '',
-        label: typeof input.label === 'string' ? input.label : '',
-        width: input.width,
-        height: input.height,
-        frameRate: input.frameRate
-      }
+      const out = { slot: index }
+      for (const key of INPUT_KEYS) out[key] = input[key]
+      return out
     }),
     mixer: {
       mode: state.mixer.mode,
@@ -67,11 +81,8 @@ export function serializeProject (state) {
       crossfadeA: state.mixer.crossfadeA,
       crossfadeB: state.mixer.crossfadeB,
       crossfade: state.mixer.crossfade,
-      weights: [
-        state.mixer.weights[0],
-        state.mixer.weights[1],
-        state.mixer.weights[2]
-      ],
+      weights: state.mixer.weights.slice(0, 3),
+      mutes: state.mixer.mutes.slice(0, 3).map(Boolean),
       blend: state.mixer.blend
     },
     effects: state.effects.map((effect) => ({
@@ -79,6 +90,12 @@ export function serializeProject (state) {
       enabled: Boolean(effect.enabled),
       params: { ...effect.params }
     })),
+    modulation: {
+      modulators: (state.modulation?.modulators || []).map((mod) => ({
+        ...mod,
+        cubicBezier: mod.cubicBezier.slice()
+      }))
+    },
     output: {
       width: state.output.width,
       height: state.output.height

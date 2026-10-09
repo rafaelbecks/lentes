@@ -67,6 +67,10 @@ function download (filename, text) {
   URL.revokeObjectURL(url)
 }
 
+function draftKey () {
+  return `draft:${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+}
+
 function fileNameFor (name) {
   const base = stripLenteExtension(name || 'Untitled') || 'Untitled'
   return `${base}.lente`
@@ -99,6 +103,7 @@ async function remember (handle, projectName) {
 export function createProjectManager ({ getState, replaceState }) {
   let handle = null
   let saved = snapshot(getState())
+  let historyKey = draftKey()
 
   function markClean () {
     saved = snapshot(getState())
@@ -123,6 +128,7 @@ export function createProjectManager ({ getState, replaceState }) {
 
   function blank () {
     adopt(createDefaultProject(), null)
+    historyKey = draftKey()
   }
 
   async function saveAs (name) {
@@ -142,6 +148,7 @@ export function createProjectManager ({ getState, replaceState }) {
       const file = await picked.getFile()
       state.name = stripLenteExtension(file.name) || state.name
       handle = picked
+      historyKey = `file:${file.name}`
       markClean()
       await remember(picked, state.name)
       return { name: state.name }
@@ -177,6 +184,7 @@ export function createProjectManager ({ getState, replaceState }) {
     const { project, warnings } = migrate(data)
     if (!project.name) project.name = stripLenteExtension(file.name)
     adopt(project, fileHandle)
+    historyKey = `file:${file.name}`
     await remember(fileHandle, getState().name)
     return { warnings, name: getState().name }
   }
@@ -198,6 +206,7 @@ export function createProjectManager ({ getState, replaceState }) {
     const { project, warnings } = migrate(data)
     if (fileName) project.name = stripLenteExtension(fileName) || project.name
     adopt(project, null)
+    historyKey = `file:${fileName || project.name}`
     return { warnings, name: getState().name }
   }
 
@@ -226,6 +235,9 @@ export function createProjectManager ({ getState, replaceState }) {
     openRecent,
     noteClean: markClean,
     recent: readRecent,
+    historyKey () {
+      return historyKey
+    },
     hasHandle () {
       return Boolean(handle)
     }

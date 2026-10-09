@@ -34,3 +34,19 @@ export function uniformLocations (gl, program, names) {
   }
   return locations
 }
+
+/**
+ * Program plus the locations of all active uniforms. Names the compiler
+ * dropped read as undefined, which WebGL treats as null (a no-op upload).
+ */
+export function createPass (gl, vertexSource, fragmentSource) {
+  const program = createProgram(gl, vertexSource, fragmentSource)
+  const u = {}
+  const count = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS)
+  for (let i = 0; i < count; i++) {
+    const info = gl.getActiveUniform(program, i)
+    const name = info.name.replace(/\[0\]$/, '')
+    u[name] = gl.getUniformLocation(program, name)
+  }
+  return { program, u }
+}
