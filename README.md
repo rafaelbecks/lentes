@@ -39,7 +39,7 @@ The bottom panel is the mixer. It works like GLOW's.
    - **FX:** the selected effect.
    - **LFO:** modulators.
    - **OUTPUT:** render size.
-6. **On the stage.** Drag the glass pane (single mode) or the shape mask directly on the output. Double-click or press `F` for fullscreen. `⌘I` / `Ctrl+I` hides the interface.
+6. **On the stage.** The program monitor is proportionally contained in the available window; its badge shows output resolution and preview scale. The canvas still renders at the project's output resolution. Drag the glass pane (single mode) or the shape mask directly on the output. Double-click or press `F` for fullscreen. `⌘I` / `Ctrl+I` hides the interface.
 
 ### Effects
 
@@ -119,6 +119,10 @@ The render order is:
 Bypassed passes, and a color grade sitting at identity, are skipped.
 
 `scripts/pipeline-smoke.html` and `scripts/ui-smoke.html` are browser checks. Open them from the local server and read the `data-*` attributes on `#result`.
+
+The proposed reusable desktop host for publishing Luminode Studio apps through
+Syphon on macOS and Spout on Windows is documented in
+[`docs/luminode-studio-host.md`](docs/luminode-studio-host.md).
 
 ## Provenance
 

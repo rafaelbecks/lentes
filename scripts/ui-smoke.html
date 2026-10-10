@@ -30,6 +30,17 @@
         await until(() => doc.querySelector('#boot')?.dataset.frame === '1')
         const out = {}
         const key = (k, extra = {}) => win.dispatchEvent(new win.KeyboardEvent('keydown', { key: k, metaKey: true, bubbles: true, ...extra }))
+        const preview = doc.querySelector('#program-preview')
+        const stage = doc.querySelector('#stage')
+        const previewRect = preview.getBoundingClientRect()
+        const stageStyle = win.getComputedStyle(stage)
+        const availableWidth = stage.clientWidth - parseFloat(stageStyle.paddingLeft) - parseFloat(stageStyle.paddingRight)
+        const availableHeight = stage.clientHeight - parseFloat(stageStyle.paddingTop) - parseFloat(stageStyle.paddingBottom)
+        const [outputWidth, outputHeight] = preview.dataset.outputSize.split('×').map(Number)
+        out.previewOutput = preview.dataset.outputSize
+        out.previewScale = preview.dataset.previewScale
+        out.previewFits = String(previewRect.width <= availableWidth && previewRect.height <= availableHeight)
+        out.previewAspect = String(Math.abs(previewRect.width / previewRect.height - outputWidth / outputHeight) < 0.001)
 
         const select = doc.querySelectorAll('.mixer-strip-source')[0]
         select.value = 'shader:Balatro'

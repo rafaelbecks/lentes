@@ -13,6 +13,7 @@ import { createMixerPanel } from './ui/mixer-panel.js'
 import { createEffectChain } from './ui/effect-chain.js'
 import { createControls } from './ui/controls.js'
 import { bindStageDrag } from './ui/stage-drag.js'
+import { createPreviewFitter } from './ui/preview-fit.js'
 
 const state = createDefaultProject()
 const title = document.querySelector('#project-name')
@@ -23,6 +24,7 @@ const boot = document.querySelector('#boot')
 const stage = document.querySelector('#stage')
 const fileInput = document.querySelector('#file-fallback')
 const canvas = document.querySelector('#output')
+const previewFrame = document.querySelector('#program-preview')
 
 window.addEventListener('error', (event) => {
   boot.hidden = false
@@ -49,6 +51,11 @@ function startRenderer () {
 }
 
 const renderer = startRenderer()
+const preview = createPreviewFitter({
+  stage,
+  frame: previewFrame,
+  getOutputSize: () => state.output
+})
 
 let clean = false
 let projects = null
@@ -76,6 +83,7 @@ function report (error) {
 function edited (origin) {
   touchTitle()
   history?.noteEdit()
+  preview.sync()
   if (origin !== 'mixer') mixer.render()
   if (origin !== 'chain') chain.render()
   if (origin === 'chain') controls.syncEffect()
@@ -209,6 +217,7 @@ async function restoreInputs (only) {
 
 function replaceState (project) {
   const warnings = applyProject(state, project)
+  preview.sync()
   controls.refresh()
   mixer.render()
   chain.render()
@@ -448,11 +457,13 @@ window.addEventListener('beforeunload', (event) => {
 
 window.addEventListener('pagehide', () => {
   history.commitNow()
+  preview.dispose()
   for (const input of inputs) input.disconnect()
 })
 
 document.addEventListener('fullscreenchange', () => {
   document.body.classList.toggle('is-fullscreen', Boolean(document.fullscreenElement))
+  preview.sync()
 })
 
 stage.addEventListener('dblclick', () => {
