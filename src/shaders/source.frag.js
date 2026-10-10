@@ -1,15 +1,18 @@
 /**
- * Per-source processing: contain fit to the output aspect, flips, gain,
- * saturation, hue rotation and invert. Writes coverage to alpha so the
- * mixer can ignore letterbox areas.
+ * Per-source processing: contain the picture inside a pixel box (the whole
+ * frame for a camera or shader; width × height for a file), then flips,
+ * gain, saturation, hue rotation and invert. Writes coverage to alpha so
+ * the mixer can ignore the area outside the picture.
  * Hue rotation uses the CSS hue-rotate() matrix, as GLOW's hue filter does.
  */
 export const SOURCE_FRAG = `#version 300 es
 precision highp float;
 
 uniform sampler2D uSource;
+uniform vec2 uResolution;
+uniform vec2 uBox;
+uniform vec2 uCenter;
 uniform float uSrcAspect;
-uniform float uCanvasAspect;
 uniform vec2 uFlip;
 uniform float uGain;
 uniform float uSaturation;
@@ -37,12 +40,19 @@ vec3 hueRotate(vec3 c, float a) {
 }
 
 void main() {
-  float spanX = 1.0;
-  float spanY = 1.0;
-  if (uSrcAspect > uCanvasAspect) spanY = uCanvasAspect / uSrcAspect;
-  else spanX = uSrcAspect / uCanvasAspect;
-  float x0 = 0.5 - spanX * 0.5;
-  float y0 = 0.5 - spanY * 0.5;
+  vec2 box = max(uBox, vec2(1.0));
+  float boxAspect = box.x / box.y;
+  float spanX;
+  float spanY;
+  if (uSrcAspect > boxAspect) {
+    spanX = box.x / uResolution.x;
+    spanY = spanX * uResolution.x / (uSrcAspect * uResolution.y);
+  } else {
+    spanY = box.y / uResolution.y;
+    spanX = spanY * uSrcAspect * uResolution.y / uResolution.x;
+  }
+  float x0 = uCenter.x - spanX * 0.5;
+  float y0 = uCenter.y - spanY * 0.5;
   if (vUv.x < x0 || vUv.x > x0 + spanX || vUv.y < y0 || vUv.y > y0 + spanY) {
     fragColor = vec4(0.0);
     return;

@@ -35,7 +35,7 @@
       <div id="program-preview" aria-label="Program preview">
         <canvas id="output" aria-label="LENTES output"></canvas>
       </div>
-      <p id="hint">Pick a camera or a shader on an input strip</p>
+      <p id="hint">Pick a camera, a file, or a shader on an input strip</p>
       <p id="boot" hidden></p>
     </div>
 
@@ -59,6 +59,7 @@
     </div>
 
     <input id="file-fallback" type="file" accept=".lentes,application/json" hidden />
+    <input id="media-file" type="file" accept="video/*,image/*" hidden />
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

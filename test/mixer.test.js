@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { containMap } from '../src/mixer/fit.js'
+import { containMap, placementBox } from '../src/mixer/fit.js'
 import { mixColors, blendModeIndex, mixerModeIndex } from '../src/mixer/blend.js'
 
 const red = [1, 0, 0]
@@ -13,6 +13,14 @@ test('contain keeps equal aspects and letterboxes a wider source', () => {
   assert.equal(containMap([0.5, 0], 2, 1), null)
   assert.deepEqual(containMap([0.5, 0.25], 2, 1), [0.5, 0])
   assert.equal(containMap([0.5, 0.5], 0, 1), null)
+})
+
+test('a file box the size of the frame contains like a camera', () => {
+  assert.deepEqual(placementBox(16 / 9, 1280, 720, 1280, 720), { spanX: 1, spanY: 1 })
+  const wide = placementBox(2, 1280, 720, 1280, 720)
+  assert.equal(wide.spanX, 1)
+  assert.ok(Math.abs(wide.spanY - 640 / 720) < 1e-9)
+  assert.equal(placementBox(0, 100, 100, 100, 100), null)
 })
 
 test('solo uses one ready source and ignores the others', () => {

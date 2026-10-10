@@ -18,3 +18,20 @@ export function containMap (uv, srcAspect, dstAspect) {
   if (x < x0 || x > x0 + spanX || y < y0 || y > y0 + spanY) return null
   return [(x - x0) / spanX, (y - y0) / spanY]
 }
+
+/**
+ * Contain a source inside a pixel box, as fractions of the canvas.
+ * A box the size of the canvas is the full-frame contain used for cameras.
+ */
+export function placementBox (srcAspect, boxW, boxH, canvasW, canvasH) {
+  const src = Number(srcAspect)
+  const bw = Number(boxW)
+  const bh = Number(boxH)
+  const cw = Number(canvasW)
+  const ch = Number(canvasH)
+  if (!(src > 0) || !(bw > 0) || !(bh > 0) || !(cw > 0) || !(ch > 0)) return null
+  const boxAspect = bw / bh
+  const drawW = src > boxAspect ? bw : bh * src
+  const drawH = src > boxAspect ? bw / src : bh
+  return { spanX: drawW / cw, spanY: drawH / ch }
+}

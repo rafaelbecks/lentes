@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { EFFECT_DEFINITIONS, effectDefinition, moveEffectTo, sanitizeParam, setEffectOrder } from '../src/effects/registry.js'
+import { isMediaFile } from '../src/inputs/file-input.js'
 import { applyProject } from '../src/projects/apply.js'
 import { migrate } from '../src/projects/migrations.js'
 import {
@@ -163,6 +164,23 @@ test('file names use the .lentes extension', () => {
   assert.equal(isLenteFileName('reel.lente'), false)
   assert.equal(isLenteFileName('reel.glow'), false)
   assert.equal(stripLenteExtension('reel.lentes'), 'reel')
+})
+
+test('a file source keeps its name, loop and position', () => {
+  const base = serializeProject(createDefaultProject())
+  base.inputs[0].kind = 'file'
+  base.inputs[0].label = 'clip.mp4'
+  delete base.inputs[0].loop
+  delete base.inputs[0].posX
+  delete base.inputs[0].posY
+  const { project } = migrate(base)
+  assert.equal(project.inputs[0].kind, 'file')
+  assert.equal(project.inputs[0].label, 'clip.mp4')
+  assert.equal(project.inputs[0].loop, true)
+  assert.equal(project.inputs[0].posX, 0.5)
+  assert.equal(project.inputs[0].posY, 0.5)
+  assert.equal(isMediaFile({ name: 'still.png', type: '' }), true)
+  assert.equal(isMediaFile({ name: 'notes.txt', type: 'text/plain' }), false)
 })
 
 test('version 2 projects open with no shaders', () => {

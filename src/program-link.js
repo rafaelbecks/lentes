@@ -1,14 +1,16 @@
 import { serializeProject } from './projects/schema.js'
 
 /**
- * Operator → output surface link. Only the project document crosses it;
- * pixels never do. Both windows must share an origin.
+ * Operator → output surface link. The project document crosses it, and so
+ * does a chosen video or image (a file the project only names). Pixels of
+ * the rendered frame never do. Both windows must share an origin.
  */
 const CHANNEL = 'lentes-program'
 
 export function createProgramSender (state) {
-  if (typeof BroadcastChannel === 'undefined') return { send () {}, dispose () {} }
+  if (typeof BroadcastChannel === 'undefined') return { send () {}, setMedia () {}, dispose () {} }
   const channel = new BroadcastChannel(CHANNEL)
+  const media = [null, null, null]
   let queued = false
 
   function post () {
@@ -20,8 +22,14 @@ export function createProgramSender (state) {
     })
   }
 
+  function postMedia (index) {
+    channel.postMessage({ type: 'media', index, file: media[index] })
+  }
+
   channel.addEventListener('message', (event) => {
-    if (event.data?.type === 'hello') post()
+    if (event.data?.type !== 'hello') return
+    post()
+    for (let i = 0; i < media.length; i++) if (media[i]) postMedia(i)
   })
 
   return {
@@ -30,16 +38,21 @@ export function createProgramSender (state) {
       queued = true
       requestAnimationFrame(post)
     },
+    setMedia (index, file) {
+      media[index] = file || null
+      postMedia(index)
+    },
     dispose () {
       channel.close()
     }
   }
 }
 
-export function createProgramReceiver (onState) {
+export function createProgramReceiver (onState, onMedia) {
   const channel = new BroadcastChannel(CHANNEL)
   channel.addEventListener('message', (event) => {
     if (event.data?.type === 'state') onState(event.data)
+    if (event.data?.type === 'media') onMedia?.(event.data)
   })
   channel.postMessage({ type: 'hello' })
   return {

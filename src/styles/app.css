@@ -459,7 +459,8 @@ button:focus-visible, select:focus-visible, input:focus-visible {
   overflow: hidden;
 }
 
-.mixer-strip-preview video {
+.mixer-strip-preview video,
+.mixer-strip-preview img {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -468,7 +469,9 @@ button:focus-visible, select:focus-visible, input:focus-visible {
   opacity: 0;
 }
 
-.mixer-strip-preview.is-live video { opacity: 1; }
+.mixer-strip-preview.is-live video.preview-camera,
+.mixer-strip-preview.is-movie video.preview-file,
+.mixer-strip-preview.is-image img { opacity: 1; }
 
 .mixer-strip-placeholder {
   font-family: "IBM Plex Mono", monospace;

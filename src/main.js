@@ -4,6 +4,7 @@ import { createProjectManager } from './projects/project-manager.js'
 import { createRenderer } from './renderer/renderer.js'
 import { createDeviceManager, cameraErrorMessage, probeCameraPermission } from './inputs/device-manager.js'
 import { createVideoInput } from './inputs/video-input.js'
+import { createFileInput, isMediaFile } from './inputs/file-input.js'
 import { createHistory } from './history/history.js'
 import { applyModulation, modulatedCategories } from './modulation/modulation.js'
 import { createAppMenu } from './ui/app-menu.js'
@@ -39,6 +40,8 @@ window.addEventListener('error', (event) => {
 
 const deviceManager = createDeviceManager()
 const inputs = [0, 1, 2].map(() => createVideoInput())
+const files = [0, 1, 2].map(() => createFileInput())
+const mediaInput = document.querySelector('#media-file')
 const dialogs = createDialogs(document.querySelector('#modal'))
 const clock = () => performance.now() / 1000
 
@@ -76,7 +79,7 @@ function touchTitle () {
 }
 
 function updateHint () {
-  const live = state.inputs.some((input, i) => input.kind === 'shader' || inputs[i].status === 'live')
+  const live = state.inputs.some((input, i) => input.kind === 'shader' || input.kind === 'file' || inputs[i].status === 'live')
   hint.hidden = live || boot.dataset.state === 'error'
 }
 
@@ -111,6 +114,7 @@ const mixer = createMixerPanel({
   root: document.querySelector('#mixer'),
   state,
   videos: inputs.map((input) => input.video),
+  files,
   chainRoot,
   onChange: () => edited('mixer'),
   onSource: (index, value) => chooseSource(index, value).catch(report)
@@ -128,10 +132,19 @@ const controls = createControls({
   state,
   getTime: clock,
   onChange: () => edited('pane'),
-  onFormat
+  onFormat,
+  onPickFile: (index) => openMediaPicker(index)
 })
 
-bindStageDrag({ canvas, state, onChange: () => edited('stage') })
+bindStageDrag({
+  canvas,
+  state,
+  getSourceAspect (index) {
+    const file = files[index]
+    return file.isReady() ? file.width() / file.height() : 0
+  },
+  onChange: () => edited('stage')
+})
 
 const shaderLab = createShaderLab({
   state,
@@ -202,16 +215,24 @@ async function chooseSource (index, value) {
     mixer.render()
     return shaderLab.open(index)
   }
+  if (value === 'file:pick') {
+    mixer.render()
+    openMediaPicker(index)
+    return
+  }
   if (value === 'off') {
     input.kind = 'none'
     input.deviceId = ''
     input.label = ''
+    clearFile(index)
     disconnectSlot(index)
   } else if (value.startsWith('shader:')) {
     input.kind = 'shader'
     input.shader = value.slice(7)
+    clearFile(index)
     disconnectSlot(index, 'shader')
   } else if (value.startsWith('camera:')) {
+    clearFile(index)
     input.kind = 'camera'
     input.deviceId = value.slice(7)
     input.label = deviceManager.list().find((device) => device.deviceId === input.deviceId)?.label || ''
@@ -224,6 +245,7 @@ async function chooseSource (index, value) {
 
 async function restoreSlot (index, list, labeled) {
   const input = state.inputs[index]
+  if (input.kind === 'file') return
   if (input.kind === 'shader') return disconnectSlot(index, 'shader')
   if (input.kind !== 'camera' || !input.deviceId) return disconnectSlot(index)
   inputs[index].disconnect()
@@ -242,8 +264,65 @@ async function restoreInputs (only) {
   updateHint()
 }
 
+function clearFile (index) {
+  if (!files[index].name && !files[index].isReady()) return
+  files[index].clear()
+  program.setMedia(index, null)
+}
+
+function syncFiles () {
+  for (let i = 0; i < 3; i++) {
+    const input = state.inputs[i]
+    const file = files[i]
+    if (input.kind !== 'file') {
+      clearFile(i)
+      continue
+    }
+    if (file.name && file.name !== input.label) clearFile(i)
+    if (file.isReady()) mixer.setStatus(i, 'live', `${file.width()}×${file.height()}`)
+    else mixer.setStatus(i, 'missing', input.label || 'choose a file')
+  }
+}
+
+function clampDim (value, min, max) {
+  return Math.round(Math.min(max, Math.max(min, value)))
+}
+
+async function useMediaFile (index, file) {
+  if (!isMediaFile(file)) throw new Error('Choose a video or an image')
+  const input = state.inputs[index]
+  disconnectSlot(index, 'file')
+  input.kind = 'file'
+  input.deviceId = ''
+  input.label = file.name || 'file'
+  try {
+    const info = await files[index].load(file, { loop: input.loop })
+    input.width = clampDim(info.width, 160, 1920)
+    input.height = clampDim(info.height, 120, 1080)
+  } catch (error) {
+    input.kind = 'none'
+    input.label = ''
+    files[index].clear()
+    mixer.setStatus(index, 'error', error.message)
+    throw error
+  }
+  program.setMedia(index, file)
+  mixer.setStatus(index, 'live', `${files[index].width()}×${files[index].height()}`)
+  edited('mixer')
+  controls.refreshValues()
+  updateHint()
+}
+
+function openMediaPicker (index) {
+  if (!mediaInput) return
+  mediaInput.dataset.slot = String(index)
+  mediaInput.value = ''
+  mediaInput.click()
+}
+
 function replaceState (project) {
   const warnings = applyProject(state, project)
+  syncFiles()
   preview.sync()
   program.send()
   controls.refresh()
@@ -436,6 +515,13 @@ fileInput.addEventListener('change', () => {
   if (file) openFile(file)
 })
 
+mediaInput?.addEventListener('change', () => {
+  const file = mediaInput.files && mediaInput.files[0]
+  const index = Number(mediaInput.dataset.slot)
+  mediaInput.value = ''
+  if (file && Number.isInteger(index)) useMediaFile(index, file).catch(report)
+})
+
 function isTextField (target) {
   if (!target) return false
   if (target.tagName === 'TEXTAREA') return true
@@ -493,6 +579,7 @@ window.addEventListener('pagehide', () => {
   preview.dispose()
   program.dispose()
   for (const input of inputs) input.disconnect()
+  for (const file of files) file.clear()
 })
 
 document.addEventListener('fullscreenchange', () => {
@@ -516,17 +603,25 @@ window.addEventListener('drop', async (event) => {
   document.body.classList.remove('is-dragover')
   const file = event.dataTransfer?.files?.[0]
   if (!file) return
+  if (isMediaFile(file)) {
+    const slot = state.inputs.findIndex((input) => input.kind === 'none')
+    useMediaFile(slot === -1 ? 0 : slot, file).catch(report)
+    return
+  }
   if (!(await confirmDiscard())) return
   openFile(file)
 })
 
-const sources = inputs.map((input) => ({ video: input.video, live: false }))
+const sources = inputs.map((input, i) => ({ video: input.video, live: false, file: files[i] }))
 let frames = 0
 let stamp = performance.now()
 function frame (now) {
   requestAnimationFrame(frame)
   if (document.hidden) return
-  for (let i = 0; i < 3; i++) sources[i].live = inputs[i].isLive()
+  for (let i = 0; i < 3; i++) {
+    sources[i].live = inputs[i].isLive()
+    files[i].setLoop(state.inputs[i].loop)
+  }
   const time = now / 1000
   const restore = applyModulation(state, time)
   let drew = false

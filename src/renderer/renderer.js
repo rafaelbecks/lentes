@@ -223,6 +223,18 @@ export function createRenderer (canvas) {
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false)
       return { texture: cameraTextures[index], aspect: video.videoWidth / video.videoHeight }
     }
+    if (input.kind === 'file') {
+      const file = source && source.file
+      if (!file || !file.isReady()) return null
+      const element = file.kind === 'image' ? file.image : file.video
+      gl.bindTexture(gl.TEXTURE_2D, cameraTextures[index])
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, element)
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false)
+      const aspect = file.width() / file.height()
+      if (!(aspect > 0)) return null
+      return { texture: cameraTextures[index], aspect }
+    }
     if (input.kind === 'shader') {
       shaderClocks[index] += dt * input.speed
       if (isCustomShader(input.shader)) return customTexture(index, input, width, height, dt, state)
@@ -254,8 +266,11 @@ export function createRenderer (canvas) {
 
   function processSource (index, input, picture, width, height) {
     const u = use(passes.source, picture.texture)
+    const placed = input.kind === 'file'
+    gl.uniform2f(u.uResolution, width, height)
+    gl.uniform2f(u.uBox, placed ? input.width : width, placed ? input.height : height)
+    gl.uniform2f(u.uCenter, placed ? input.posX : 0.5, placed ? 1 - input.posY : 0.5)
     gl.uniform1f(u.uSrcAspect, picture.aspect)
-    gl.uniform1f(u.uCanvasAspect, width / height)
     gl.uniform2f(u.uFlip, input.flipX ? 1 : 0, input.flipY ? 1 : 0)
     gl.uniform1f(u.uGain, input.gain)
     gl.uniform1f(u.uSaturation, input.saturation)

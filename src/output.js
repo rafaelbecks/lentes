@@ -2,6 +2,7 @@ import { createDefaultProject } from './projects/schema.js'
 import { applyProject } from './projects/apply.js'
 import { createRenderer } from './renderer/renderer.js'
 import { createVideoInput } from './inputs/video-input.js'
+import { createFileInput } from './inputs/file-input.js'
 import { applyModulation } from './modulation/modulation.js'
 import { createProgramReceiver } from './program-link.js'
 
@@ -14,7 +15,8 @@ const state = createDefaultProject()
 const canvas = document.querySelector('#output')
 const renderer = createRenderer(canvas)
 const inputs = [0, 1, 2].map(() => createVideoInput())
-const sources = inputs.map((input) => ({ video: input.video, live: false }))
+const files = [0, 1, 2].map(() => createFileInput())
+const sources = inputs.map((input, i) => ({ video: input.video, live: false, file: files[i] }))
 const signatures = ['', '', '']
 let clockOrigin = performance.timeOrigin
 let reportedSize = ''
@@ -58,11 +60,22 @@ createProgramReceiver(({ project, clockOrigin: origin }) => {
   if (Number.isFinite(origin)) clockOrigin = origin
   syncCameras()
   reportSize()
+}, ({ index, file }) => {
+  const slot = files[index]
+  if (!slot) return
+  if (!file) {
+    slot.clear()
+    return
+  }
+  slot.load(file, { loop: state.inputs[index]?.loop !== false }).catch((error) => console.error(error))
 })
 
 function frame (now) {
   requestAnimationFrame(frame)
-  for (let i = 0; i < 3; i++) sources[i].live = inputs[i].isLive()
+  for (let i = 0; i < 3; i++) {
+    sources[i].live = inputs[i].isLive()
+    files[i].setLoop(state.inputs[i].loop)
+  }
   const time = (performance.timeOrigin + now - clockOrigin) / 1000
   const restore = applyModulation(state, time)
   try {
@@ -74,6 +87,7 @@ function frame (now) {
 
 window.addEventListener('pagehide', () => {
   for (const input of inputs) input.disconnect()
+  for (const file of files) file.clear()
 })
 
 requestAnimationFrame(frame)

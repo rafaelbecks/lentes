@@ -95,7 +95,9 @@ const INPUT_TARGETS = [
   { key: 'speed', label: 'Shader speed', type: 'number', min: 0, max: 4, step: 0.01 },
   { key: 'invert', label: 'Invert', type: 'checkbox' },
   { key: 'flipX', label: 'Flip X', type: 'checkbox' },
-  { key: 'flipY', label: 'Flip Y', type: 'checkbox' }
+  { key: 'flipY', label: 'Flip Y', type: 'checkbox' },
+  { key: 'posX', label: 'Position X', type: 'number', min: 0, max: 1, step: 0.001 },
+  { key: 'posY', label: 'Position Y', type: 'number', min: 0, max: 1, step: 0.001 }
 ]
 
 function effectTargets (definition) {

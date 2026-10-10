@@ -5,7 +5,7 @@ export const APP_VERSION = '0.2.0'
 export const LENTE_EXTENSION = '.lentes'
 export const INPUT_COUNT = 3
 
-export const SOURCE_KINDS = ['none', 'camera', 'shader']
+export const SOURCE_KINDS = ['none', 'camera', 'shader', 'file']
 
 export function clampNumber (value, min, max, fallback) {
   if (value === null || value === '' || typeof value === 'boolean') return fallback
@@ -25,6 +25,9 @@ export function createInput (slot) {
     width: 1280,
     height: 720,
     frameRate: 30,
+    loop: true,
+    posX: 0.5,
+    posY: 0.5,
     invert: false,
     flipX: false,
     flipY: false,
@@ -62,7 +65,7 @@ export function createDefaultProject () {
 
 const INPUT_KEYS = [
   'kind', 'deviceId', 'label', 'shader', 'speed', 'width', 'height', 'frameRate',
-  'invert', 'flipX', 'flipY', 'gain', 'saturation', 'hue'
+  'loop', 'posX', 'posY', 'invert', 'flipX', 'flipY', 'gain', 'saturation', 'hue'
 ]
 
 export function serializeProject (state) {

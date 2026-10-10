@@ -38,7 +38,7 @@ function addParam (folder, params, spec) {
  *   OUTPUT   render size
  * `onChange(kind, detail)` reports every edit.
  */
-export function createControls ({ container, state, getTime, onChange, onFormat }) {
+export function createControls ({ container, state, getTime, onChange, onFormat, onPickFile }) {
   const pane = new Pane({ container })
   pane.registerPlugin(EssentialsPlugin)
   pane.registerPlugin(WaveformPlugin)
@@ -72,6 +72,19 @@ export function createControls ({ container, state, getTime, onChange, onFormat 
     folder.addBinding(input, 'hue', { label: 'Hue', min: -180, max: 180, step: 1 }).on('change', changed)
     folder.addButton({ title: 'Reset operations' }).on('click', () => {
       Object.assign(input, { invert: false, flipX: false, flipY: false, gain: 1, saturation: 1, hue: 0 })
+      pane.refresh()
+      changed()
+    })
+    const file = folder.addFolder({ title: 'File', expanded: false })
+    file.addBinding(input, 'loop', { label: 'Loop' }).on('change', changed)
+    file.addBinding(input, 'width', { label: 'Width', min: 160, max: 1920, step: 2 }).on('change', changed)
+    file.addBinding(input, 'height', { label: 'Height', min: 120, max: 1080, step: 2 }).on('change', changed)
+    file.addBinding(input, 'posX', { label: 'Position X', min: 0, max: 1, step: 0.001 }).on('change', changed)
+    file.addBinding(input, 'posY', { label: 'Position Y', min: 0, max: 1, step: 0.001 }).on('change', changed)
+    file.addButton({ title: 'Choose file…' }).on('click', () => onPickFile(i))
+    file.addButton({ title: 'Center' }).on('click', () => {
+      input.posX = 0.5
+      input.posY = 0.5
       pane.refresh()
       changed()
     })

@@ -14,7 +14,8 @@ const STATUS_TEXT = {
   missing: 'camera unavailable',
   permission: 'allow cameras to restore',
   ended: 'disconnected',
-  shader: 'procedural'
+  shader: 'procedural',
+  file: 'file'
 }
 
 const MODE_SHORT = { solo: 'SOLO', crossfade: 'X·FADE', blend: 'BLEND' }
@@ -40,7 +41,7 @@ function setFaderFill (input) {
   input.style.setProperty('--fader-fill', `${pct}%`)
 }
 
-export function createMixerPanel ({ root, state, videos, chainRoot, onChange, onSource }) {
+export function createMixerPanel ({ root, state, videos, files, chainRoot, onChange, onSource }) {
   root.classList.add('mixer-panel')
   const stripsSection = el('section', 'mixer-section mixer-section--strips')
   stripsSection.append(el('div', 'mixer-section-title', 'Inputs'))
@@ -69,7 +70,8 @@ export function createMixerPanel ({ root, state, videos, chainRoot, onChange, on
 
     const preview = el('div', 'mixer-strip-preview')
     const placeholder = el('span', 'mixer-strip-placeholder', '')
-    preview.append(videos[i], placeholder)
+    videos[i].classList.add('preview-camera')
+    preview.append(videos[i], files[i].video, files[i].image, placeholder)
 
     const select = el('select', 'mixer-strip-source')
     select.setAttribute('aria-label', `Source for input ${i + 1}`)
@@ -210,6 +212,7 @@ export function createMixerPanel ({ root, state, videos, chainRoot, onChange, on
   function sourceValue (input) {
     if (input.kind === 'shader') return `shader:${input.shader}`
     if (input.kind === 'camera' && input.deviceId) return `camera:${input.deviceId}`
+    if (input.kind === 'file') return 'file'
     return 'off'
   }
 
@@ -235,6 +238,16 @@ export function createMixerPanel ({ root, state, videos, chainRoot, onChange, on
       option.value = 'allow'
       cams.append(option)
     }
+    const media = el('optgroup')
+    media.label = 'File'
+    if (input.kind === 'file') {
+      const current = el('option', '', input.label || 'Video or image')
+      current.value = 'file'
+      media.append(current)
+    }
+    const pick = el('option', '', input.kind === 'file' ? 'Replace video or image…' : 'Video or image…')
+    pick.value = 'file:pick'
+    media.append(pick)
     const shaders = el('optgroup')
     shaders.label = 'Shaders (GLOW)'
     for (const shader of PROCEDURAL_SOURCES) {
@@ -252,7 +265,7 @@ export function createMixerPanel ({ root, state, videos, chainRoot, onChange, on
     const lab = el('option', '', state.shaders.length ? 'Shader Lab…' : 'Import from Shadertoy…')
     lab.value = 'lab'
     imported.append(lab)
-    select.replaceChildren(...options, cams, shaders, imported)
+    select.replaceChildren(...options, cams, media, shaders, imported)
     select.value = sourceValue(input)
     if (select.value !== sourceValue(input)) select.value = 'off'
   }
@@ -267,12 +280,19 @@ export function createMixerPanel ({ root, state, videos, chainRoot, onChange, on
       const c = channels[i]
       if (listChanged || c.select.value !== sourceValue(input)) fillSelect(i)
       const shader = input.kind === 'shader'
+      const file = files[i]
+      const showImage = input.kind === 'file' && file.kind === 'image' && file.isReady()
+      const showMovie = input.kind === 'file' && file.kind === 'video' && file.isReady()
       c.sub.textContent = shader
         ? shaderLabel(state, input.shader)
-        : input.kind === 'camera' && input.deviceId ? (input.label || 'camera') : 'off'
+        : input.kind === 'file'
+          ? (input.label || 'file')
+          : input.kind === 'camera' && input.deviceId ? (input.label || 'camera') : 'off'
       c.sub.title = c.sub.textContent
-      c.placeholder.textContent = shader ? '◇ shader' : c.kind === 'live' ? '' : '—'
-      c.preview.classList.toggle('is-live', !shader && c.kind === 'live')
+      c.placeholder.textContent = shader ? '◇ shader' : showImage || showMovie ? '' : input.kind === 'file' ? '▣ file' : c.kind === 'live' ? '' : '—'
+      c.preview.classList.toggle('is-live', !shader && !showImage && !showMovie && c.kind === 'live')
+      c.preview.classList.toggle('is-image', showImage)
+      c.preview.classList.toggle('is-movie', showMovie)
       c.invert.classList.toggle('active', input.invert)
       c.flipX.classList.toggle('active', input.flipX)
       c.flipY.classList.toggle('active', input.flipY)

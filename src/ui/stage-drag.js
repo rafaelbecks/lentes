@@ -1,8 +1,10 @@
 /**
  * Drag the glass pane (GLOW lets you move it with the pointer), the shape
- * mask, or the center of the displacement ripples directly on the output. Coordinates are normalized, top-left origin,
- * inside the letterboxed canvas picture.
+ * mask, the center of the displacement ripples, or a file source directly
+ * on the output. Coordinates are normalized, top-left origin, inside the
+ * letterboxed canvas picture.
  */
+import { placementBox } from '../mixer/fit.js'
 
 function pictureRect (canvas) {
   const box = canvas.getBoundingClientRect()
@@ -33,7 +35,7 @@ function clamp01 (value) {
   return Math.min(1, Math.max(0, value))
 }
 
-export function bindStageDrag ({ canvas, state, onChange }) {
+export function bindStageDrag ({ canvas, state, getSourceAspect, onChange }) {
   function effect (id) {
     return state.effects.find((entry) => entry.id === id)
   }
@@ -53,7 +55,41 @@ export function bindStageDrag ({ canvas, state, onChange }) {
     const mask = effect('mask')
     if (mask?.enabled) return mask
     const displace = effect('displace')
-    return displace?.enabled && displace.params.pattern === 'ripple' ? displace : null
+    if (displace?.enabled && displace.params.pattern === 'ripple') return displace
+    return hitFile(uv)
+  }
+
+  function hitFile (uv) {
+    if (!getSourceAspect || !canvas.width || !canvas.height) return null
+    for (let i = 2; i >= 0; i--) {
+      const input = state.inputs[i]
+      if (input.kind !== 'file') continue
+      const box = placementBox(getSourceAspect(i), input.width, input.height, canvas.width, canvas.height)
+      if (!box) continue
+      const x0 = input.posX - box.spanX / 2
+      const y0 = input.posY - box.spanY / 2
+      if (uv.x >= x0 && uv.x <= x0 + box.spanX && uv.y >= y0 && uv.y <= y0 + box.spanY) {
+        return { id: 'file', input }
+      }
+    }
+    return null
+  }
+
+  function pointOf (picked) {
+    if (picked.id === 'file') return { x: picked.input.posX, y: picked.input.posY }
+    return { x: picked.params.centerX, y: picked.params.centerY }
+  }
+
+  function moveTo (picked, x, y) {
+    const nx = Number(clamp01(x).toFixed(4))
+    const ny = Number(clamp01(y).toFixed(4))
+    if (picked.id === 'file') {
+      picked.input.posX = nx
+      picked.input.posY = ny
+      return
+    }
+    picked.params.centerX = nx
+    picked.params.centerY = ny
   }
 
   canvas.addEventListener('pointermove', (event) => {
@@ -68,13 +104,13 @@ export function bindStageDrag ({ canvas, state, onChange }) {
     if (!picked) return
     event.preventDefault()
     canvas.setPointerCapture(event.pointerId)
-    const offset = { x: picked.params.centerX - start.x, y: picked.params.centerY - start.y }
+    const origin = pointOf(picked)
+    const offset = { x: origin.x - start.x, y: origin.y - start.y }
     let moved = false
 
     const onMove = (move) => {
       const uv = toUv(canvas, move)
-      picked.params.centerX = Number(clamp01(uv.x + offset.x).toFixed(4))
-      picked.params.centerY = Number(clamp01(uv.y + offset.y).toFixed(4))
+      moveTo(picked, uv.x + offset.x, uv.y + offset.y)
       moved = true
     }
     const onEnd = () => {
