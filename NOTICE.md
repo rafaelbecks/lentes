@@ -38,6 +38,13 @@ The Luminode Studio cursor (`assets/cursor.svg`) is shared by the suite.
   stepped timing are reimplemented as a shader; no grained.js code ships.
 - Rain Screen by Jakob Thomsen, Shadertoy 4ljXDy, licensed
   CC BY-NC-SA 3.0 (non-commercial, share-alike).
+- Glass displacement follows Shadertoy WXKyWc
+  (https://www.shadertoy.com/view/WXKyWc), itself after Three.js Journey
+  lesson 45 (post-processing). The displacement and lighting formula is
+  kept; the normal map image is replaced by generated normals.
+- The Shader Lab's Shadertoy uniforms and `mainImage` entry point follow
+  https://www.shadertoy.com/howto. Code users paste keeps its authors'
+  licenses.
 - Disco Sun Vortex by @WorkingClassHacker / @Frostbyte (Shadertoy
   community), licensed CC BY-NC-SA 4.0 (non-commercial, share-alike).
 - Balatro background after the game by localthunk

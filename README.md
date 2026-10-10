@@ -1,8 +1,8 @@
-# LENTE
+# LENTES
 
-Experimental real-time video mixer for [Luminode Studio](https://luminode.studio/). LENTE is Laboratorio de experimentación nodal para transformación de espectros y señales.
+Experimental real-time video mixer for [Luminode Studio](https://luminode.studio/). LENTES is Laboratorio de experimentación nodal para transformación de espectros y señales.
 
-LENTE mixes up to three sources (local cameras or GLOW procedural shaders) on the GPU and runs them through a reorderable chain of effects. It is an instrument, not a timeline editor.
+LENTES mixes up to three sources (local cameras, GLOW procedural shaders, or Shadertoy code) on the GPU and runs them through a reorderable chain of effects. It is an instrument, not a timeline editor.
 
 ## Run
 
@@ -24,7 +24,7 @@ npm run lint
 
 The bottom panel is the mixer. It works like GLOW's.
 
-1. **Input strips.** Each strip has a source menu: a camera, a GLOW shader (Portal, Disco Sun Vortex, Balatro, Chroma gradients), or Off. Picking a camera connects it. The first pick asks for camera permission.
+1. **Input strips.** Each strip has a source menu: a camera, a GLOW shader (Portal, Disco Sun Vortex, Balatro, Chroma gradients), a shader imported in the Shader Lab, or Off. Picking a camera connects it. The first pick asks for camera permission.
 2. **Strip buttons.**
    - `INV` inverts colors, `↔` flips horizontally, `↕` flips vertically.
    - `M` mutes, `S` solos, and `A` / `B` assign the strip to a crossfade side.
@@ -39,7 +39,7 @@ The bottom panel is the mixer. It works like GLOW's.
    - **FX:** the selected effect.
    - **LFO:** modulators.
    - **OUTPUT:** render size.
-6. **On the stage.** The program monitor is proportionally contained in the available window; its badge shows output resolution and preview scale. The canvas still renders at the project's output resolution. Drag the glass pane (single mode) or the shape mask directly on the output. Double-click or press `F` for fullscreen. `⌘I` / `Ctrl+I` hides the interface.
+6. **On the stage.** The program monitor is proportionally contained in the available window; its badge shows output resolution and preview scale. The canvas still renders at the project's output resolution. Drag the glass pane (single mode), the shape mask, or the center of the displacement ripples directly on the output. Double-click or press `F` for fullscreen. `⌘I` / `Ctrl+I` hides the interface.
 
 ### Effects
 
@@ -49,10 +49,21 @@ The bottom panel is the mixer. It works like GLOW's.
 | Chromatic | GLOW's chromatic-aberration SVG filter as a shader (linear-light gains, offset red and blue, screen blend) |
 | Glass | GLOW liquid glass: a single refracting pane, or a brick wall |
 | Rain | GLOW rain screen refraction |
+| Glass displacement | Shadertoy WXKyWc: a normal map shifts the picture and lights its slopes. The normals are ripples, noise, or beveled tiles |
 | Mask | Circle, square, triangle, polygon, star, ring. Size, stretch, rotation, softness, invert. Outside is black, a color, or another input |
 | Dither | Cartografías ordered Bayer dither and GLOW table crush |
 | Grain | grained.js grain (pattern, density, grain size, opacity, chaos, steps), as in GLOW and Cartografías |
 | Overlay | Flat color in multiply, screen, overlay, difference, or additive |
+
+### Shader Lab
+
+**Lab → Shader Lab…** (`⇧⌘L`), or *Import from Shadertoy…* in a strip's source menu, takes Shadertoy code:
+
+- Paste the **Image** tab. Only code is imported. Textures, buffers, keyboard and audio channels are not.
+- `iChannel0`–`iChannel2` are inputs 1–3 after their operations (an input that samples itself sees its previous frame). `iChannel3` is black. `iMouse` stays at zero.
+- The preview recompiles as you type. Its channels show a test card. Compile errors are listed with the line numbers of your code.
+- **Apply to project** (`⌘↵`) keeps the shader in the project. **Use on input 1/2/3** applies it and puts it on that input. Speed in the SOURCES tab scales its `iTime`.
+- A project holds up to 16 shaders of up to 64 KB each.
 
 ### LFO
 
@@ -75,10 +86,10 @@ Modulation is applied only while drawing a frame. It never changes the saved val
 
 ## Projects
 
-Projects are pretty-printed JSON with a `.lente` extension. The schema version is `2`. Version 1 files upgrade on open: noise becomes the grained.js grain, and the new effects are added switched off.
+Projects are pretty-printed JSON with a `.lentes` extension. The schema version is `3`. Older files upgrade on open: version 2 gains an empty shader list; in version 1 files noise becomes the grained.js grain, and the new effects are added switched off. Files saved as `.lente` open after renaming them to `.lentes`.
 
 - **File → New / Open / Save / Save As**, or `⌘N` `⌘O` `⌘S` `⇧⌘S`
-- Drop a `.lente` file on the window
+- Drop a `.lentes` file on the window
 - Recent projects are remembered in this browser
 
 A project stores:
@@ -87,6 +98,7 @@ A project stores:
 - the mixer, including faders and mutes;
 - effect order and parameters;
 - LFOs;
+- imported Shadertoy code;
 - the output size.
 
 It does not store camera streams. If a camera is missing on another machine, everything else still loads and that input is marked unavailable.
@@ -97,20 +109,20 @@ Browsers with the File System Access API write the file in place. Others downloa
 
 ```
 src/inputs/        cameras and device enumeration
-src/sources/       GLOW procedural shaders used as inputs
+src/sources/       GLOW procedural shaders and the Shadertoy wrapper used as inputs
 src/mixer/         blend math shared with the mix shader
 src/renderer/      one WebGL2 context, ping-pong framebuffers
 src/effects/       effect registry: parameter schemas, independent of the UI
 src/shaders/       fullscreen passes
 src/modulation/    LFOs and their targets
 src/history/       undo / redo memento stack
-src/projects/      .lente schema, migrations, file menu
+src/projects/      .lentes schema, migrations, file menu
 src/ui/            menu, mixer strips, effect chain, Tweakpane tabs, modals
 ```
 
 The render order is:
 
-1. sources (camera texture, or a procedural shader rendered into a framebuffer);
+1. sources (camera texture, or a procedural or Shadertoy shader rendered into a framebuffer);
 2. a per-source pass (fit, flips, gain, saturation, hue, invert);
 3. the mixer;
 4. the effect chain, in `effects` array order;
