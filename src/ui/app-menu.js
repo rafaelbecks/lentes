@@ -1,5 +1,5 @@
 /**
- * LENTES / File / Edit / View bar.
+ * LENTES / File / Edit / Lab / View bar.
  * Same interaction as GLOW's and MUSGO's app menus: click to open, hover to
  * move, escape to close. Items may be checkboxes, separators, or carry an
  * `enabled()` predicate (MUSGO Edit menu).
@@ -37,6 +37,13 @@ export function createAppMenu ({ parent, actions = {} } = {}) {
         { id: 'redo', label: 'Redo', shortcut: '⇧⌘Z', enabled: () => actions.canRedo?.() },
         { type: 'separator' },
         { id: 'history', label: 'History…' }
+      ]
+    },
+    {
+      id: 'lab',
+      label: 'Lab',
+      items: [
+        { id: 'shaderLab', label: 'Shader Lab…', shortcut: '⇧⌘L' }
       ]
     },
     {

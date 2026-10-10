@@ -4,9 +4,22 @@ import * as WaveformPlugin from '../lib/tweakpane-plugin-waveform.min.js'
 import { effectDefinition } from '../effects/registry.js'
 import { randomDistinctDitherRgb } from '../effects/dither-tables.js'
 import { PROCEDURAL_SOURCES } from '../sources/procedural/index.js'
+import { CUSTOM_PREFIX } from '../sources/shadertoy.js'
 import { createLfoPanel } from './lfo-panel.js'
 
-const SHADER_OPTIONS = Object.fromEntries(PROCEDURAL_SOURCES.map((entry) => [entry.displayLabel, entry.modeValue]))
+function shaderOptions (shaders) {
+  const options = Object.fromEntries(PROCEDURAL_SOURCES.map((entry) => [entry.displayLabel, entry.modeValue]))
+  for (const shader of shaders) {
+    let label = shader.name
+    while (Object.hasOwn(options, label)) label += ' ·'
+    options[label] = CUSTOM_PREFIX + shader.id
+  }
+  return options
+}
+
+function shadersSignature (shaders) {
+  return shaders.map((shader) => `${shader.id}:${shader.name}`).join('|')
+}
 
 function addParam (folder, params, spec) {
   if (spec.type === 'slider') {
@@ -33,6 +46,19 @@ export function createControls ({ container, state, getTime, onChange, onFormat 
     pages: [{ title: 'SOURCES' }, { title: 'FX' }, { title: 'LFO' }, { title: 'OUTPUT' }]
   })
   const [sourcesPage, fxPage, lfoPage, outputPage] = tab.pages
+  const shaderFolders = []
+  const shaderBindings = []
+  let shaderList = ''
+
+  function bindShaderList () {
+    shaderList = shadersSignature(state.shaders)
+    const options = shaderOptions(state.shaders)
+    shaderFolders.forEach((folder, i) => {
+      shaderBindings[i]?.dispose()
+      shaderBindings[i] = folder.addBinding(state.inputs[i], 'shader', { label: 'Shader', options, index: 0 })
+        .on('change', () => onChange('shader', i))
+    })
+  }
 
   for (let i = 0; i < 3; i++) {
     const input = state.inputs[i]
@@ -50,7 +76,7 @@ export function createControls ({ container, state, getTime, onChange, onFormat 
       changed()
     })
     const shader = folder.addFolder({ title: 'Shader source', expanded: false })
-    shader.addBinding(input, 'shader', { label: 'Shader', options: SHADER_OPTIONS }).on('change', () => onChange('shader', i))
+    shaderFolders.push(shader)
     shader.addBinding(input, 'speed', { label: 'Speed', min: 0, max: 4, step: 0.01 }).on('change', changed)
     const camera = folder.addFolder({ title: 'Camera format', expanded: false })
     for (const spec of [
@@ -61,6 +87,7 @@ export function createControls ({ container, state, getTime, onChange, onFormat 
       camera.addBinding(input, spec.key, spec).on('change', () => onFormat(i))
     }
   }
+  bindShaderList()
 
   let fxFolder = null
   let fxId = state.effects[0]?.id
@@ -128,11 +155,13 @@ export function createControls ({ container, state, getTime, onChange, onFormat 
       showEffect(fxId)
     },
     refresh () {
+      if (shadersSignature(state.shaders) !== shaderList) bindShaderList()
       showEffect(state.effects.some((entry) => entry.id === fxId) ? fxId : state.effects[0]?.id)
       lfo.render()
       pane.refresh()
     },
     refreshValues () {
+      if (shadersSignature(state.shaders) !== shaderList) bindShaderList()
       pane.refresh()
     },
     dispose () {

@@ -15,6 +15,7 @@ import { blendModeIndex, mixerModeIndex } from '../mixer/blend.js'
 import { colorIsIdentity, hexToRgb } from '../effects/color-math.js'
 import { DISPLACE_PATTERN_INDEX, MASK_SHAPE_INDEX, OVERLAY_MODE_INDEX } from '../effects/registry.js'
 import { proceduralSource } from '../sources/procedural/index.js'
+import { applyShadertoyUniforms, createShadertoyPass, findShader, isCustomShader } from '../sources/shadertoy.js'
 import { createPass } from './program.js'
 
 const NO_SETTINGS = Object.freeze({})
@@ -61,7 +62,7 @@ class RgbCache {
 
 /**
  * One WebGL2 context, one pass list per frame:
- *   procedural sources → per-slot source pass (fit, flip, color ops)
+ *   procedural / Shadertoy sources → per-slot source pass (fit, flip, color ops)
  *   → mix → effects in `state.effects` order → blit.
  * Effects ping-pong two framebuffers. Targets are reallocated only when the
  * output size changes.
@@ -81,12 +82,18 @@ export function createRenderer (canvas) {
   let vao = null
   let passes = null
   let procedural = new Map()
+  let custom = new Map()
+  let blackTexture = null
   let cameraTextures = []
   let chain = null
   let processed = null
   let raw = null
   let lastTime = null
+  const frame = { width: 0, height: 0, time: 0, available: [0, 0, 0] }
   const shaderClocks = [0, 0, 0]
+  const shaderFrames = [0, 0, 0]
+  const shaderClock = { time: 0, dt: 0, frame: 0 }
+  const channels = [null, null, null, null]
   const maskRgb = new RgbCache()
   const overlayRgb = new RgbCache()
 
@@ -95,6 +102,8 @@ export function createRenderer (canvas) {
     processed = null
     raw = null
     procedural = new Map()
+    custom = new Map()
+    blackTexture = makeTexture(gl)
     cameraTextures = [0, 1, 2].map(() => makeTexture(gl))
     vao = gl.createVertexArray()
     gl.bindVertexArray(vao)
@@ -171,6 +180,24 @@ export function createRenderer (canvas) {
     return entry
   }
 
+  /**
+   * Compiled imported Shadertoy code, recompiled when the code changes.
+   * A failed compile is remembered (pass null) so it is not retried each frame.
+   */
+  function customPass (shader) {
+    let entry = custom.get(shader.id)
+    if (entry && entry.code === shader.code) return entry.pass
+    if (entry?.pass) gl.deleteProgram(entry.pass.program)
+    entry = { code: shader.code, pass: null }
+    try {
+      entry.pass = createShadertoyPass(gl, shader.code)
+    } catch (error) {
+      console.warn(`Shader "${shader.name}" does not compile:`, error.message)
+    }
+    custom.set(shader.id, entry)
+    return entry.pass
+  }
+
   function drawTo (target) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, target ? target.framebuffer : null)
     gl.viewport(0, 0, target ? target.width : canvas.width, target ? target.height : canvas.height)
@@ -186,7 +213,7 @@ export function createRenderer (canvas) {
   }
 
   /** Returns { texture, aspect } for slot `index`, or null when it has no picture. */
-  function inputTexture (index, input, source, width, height, dt) {
+  function inputTexture (index, input, source, width, height, dt, state) {
     if (input.kind === 'camera') {
       const video = source && source.live ? source.video : null
       if (!video || video.readyState < 2 || !video.videoWidth) return null
@@ -198,6 +225,7 @@ export function createRenderer (canvas) {
     }
     if (input.kind === 'shader') {
       shaderClocks[index] += dt * input.speed
+      if (isCustomShader(input.shader)) return customTexture(index, input, width, height, dt, state)
       const { module, program, u } = proceduralPass(input.shader)
       const target = rawTarget(index, width, height)
       gl.useProgram(program)
@@ -206,6 +234,22 @@ export function createRenderer (canvas) {
       return { texture: target.texture, aspect: width / height }
     }
     return null
+  }
+
+  function customTexture (index, input, width, height, dt, state) {
+    const shader = findShader(state, input.shader)
+    const pass = shader && customPass(shader)
+    if (!pass) return null
+    for (let i = 0; i < 3; i++) channels[i] = frame.available[i] ? processed[i].texture : blackTexture
+    channels[3] = blackTexture
+    shaderClock.time = shaderClocks[index]
+    shaderClock.dt = dt * input.speed
+    shaderClock.frame = shaderFrames[index]++
+    const target = rawTarget(index, width, height)
+    gl.useProgram(pass.program)
+    applyShadertoyUniforms(gl, pass.u, width, height, shaderClock, channels)
+    drawTo(target)
+    return { texture: target.texture, aspect: width / height }
   }
 
   function processSource (index, input, picture, width, height) {
@@ -354,7 +398,6 @@ export function createRenderer (canvas) {
     }
   }
 
-  const frame = { width: 0, height: 0, time: 0, available: [0, 0, 0] }
   const ready = [0, 0, 0]
 
   /**
@@ -377,7 +420,7 @@ export function createRenderer (canvas) {
     frame.time = time
     for (let i = 0; i < 3; i++) {
       const input = state.inputs[i]
-      const picture = inputTexture(i, input, sources[i], width, height, dt)
+      const picture = inputTexture(i, input, sources[i], width, height, dt, state)
       frame.available[i] = picture ? 1 : 0
       ready[i] = picture && !state.mixer.mutes[i] ? 1 : 0
       if (picture) processSource(i, input, picture, width, height)
@@ -409,6 +452,8 @@ export function createRenderer (canvas) {
     for (const texture of cameraTextures) gl.deleteTexture(texture)
     for (const pass of Object.values(passes)) gl.deleteProgram(pass.program)
     for (const entry of procedural.values()) gl.deleteProgram(entry.program)
+    for (const entry of custom.values()) if (entry.pass) gl.deleteProgram(entry.pass.program)
+    gl.deleteTexture(blackTexture)
     gl.deleteVertexArray(vao)
   }
 

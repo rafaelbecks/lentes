@@ -5,7 +5,8 @@
  * Plain DOM; edits write to `state` and call `onChange(label)`.
  */
 import { BLEND_MODES, MIXER_MODES } from '../mixer/blend.js'
-import { PROCEDURAL_SOURCES, proceduralSource } from '../sources/procedural/index.js'
+import { PROCEDURAL_SOURCES } from '../sources/procedural/index.js'
+import { CUSTOM_PREFIX, shaderLabel } from '../sources/shadertoy.js'
 
 const STATUS_TEXT = {
   idle: 'off',
@@ -56,6 +57,7 @@ export function createMixerPanel ({ root, state, videos, chainRoot, onChange, on
   root.replaceChildren(stripsSection, master, effects)
 
   let devices = []
+  let shaderList = ''
   const channels = []
 
   for (let i = 0; i < 3; i++) {
@@ -240,20 +242,33 @@ export function createMixerPanel ({ root, state, videos, chainRoot, onChange, on
       option.value = `shader:${shader.modeValue}`
       shaders.append(option)
     }
-    select.replaceChildren(...options, cams, shaders)
+    const imported = el('optgroup')
+    imported.label = 'Shaders (Shadertoy)'
+    for (const shader of state.shaders) {
+      const option = el('option', '', shader.name)
+      option.value = `shader:${CUSTOM_PREFIX}${shader.id}`
+      imported.append(option)
+    }
+    const lab = el('option', '', state.shaders.length ? 'Shader Lab…' : 'Import from Shadertoy…')
+    lab.value = 'lab'
+    imported.append(lab)
+    select.replaceChildren(...options, cams, shaders, imported)
     select.value = sourceValue(input)
     if (select.value !== sourceValue(input)) select.value = 'off'
   }
 
   function render () {
     const mixer = state.mixer
+    const list = state.shaders.map((shader) => `${shader.id}:${shader.name}`).join('|')
+    const listChanged = list !== shaderList
+    shaderList = list
     for (let i = 0; i < 3; i++) {
       const input = state.inputs[i]
       const c = channels[i]
-      if (c.select.value !== sourceValue(input)) fillSelect(i)
+      if (listChanged || c.select.value !== sourceValue(input)) fillSelect(i)
       const shader = input.kind === 'shader'
       c.sub.textContent = shader
-        ? proceduralSource(input.shader).displayLabel
+        ? shaderLabel(state, input.shader)
         : input.kind === 'camera' && input.deviceId ? (input.label || 'camera') : 'off'
       c.sub.title = c.sub.textContent
       c.placeholder.textContent = shader ? '◇ shader' : c.kind === 'live' ? '' : '—'

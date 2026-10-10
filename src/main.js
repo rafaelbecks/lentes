@@ -10,6 +10,7 @@ import { createAppMenu } from './ui/app-menu.js'
 import { createDialogs } from './ui/dialogs.js'
 import { createHistoryModal } from './ui/history-modal.js'
 import { createMixerPanel } from './ui/mixer-panel.js'
+import { createShaderLab } from './ui/shader-lab.js'
 import { createEffectChain } from './ui/effect-chain.js'
 import { createControls } from './ui/controls.js'
 import { bindStageDrag } from './ui/stage-drag.js'
@@ -93,7 +94,7 @@ function edited (origin) {
   if (origin !== 'mixer') mixer.render()
   if (origin !== 'chain') chain.render()
   if (origin === 'chain') controls.syncEffect()
-  if (origin === 'mixer' || origin === 'stage') controls.refreshValues()
+  if (origin === 'mixer' || origin === 'stage' || origin === 'lab') controls.refreshValues()
   menu?.refresh()
 }
 
@@ -131,6 +132,21 @@ const controls = createControls({
 })
 
 bindStageDrag({ canvas, state, onChange: () => edited('stage') })
+
+const shaderLab = createShaderLab({
+  state,
+  onChange: () => edited('lab'),
+  onUse: (index, value) => chooseSource(index, value).catch(report),
+  onDelete: (id) => {
+    state.inputs.forEach((input, index) => {
+      if (input.kind === 'shader' && input.shader === `custom:${id}`) {
+        input.kind = 'none'
+        disconnectSlot(index)
+      }
+    })
+    edited('lab')
+  }
+})
 
 function disconnectSlot (index, kind = 'idle') {
   window.clearTimeout(formatTimers[index])
@@ -182,6 +198,10 @@ async function allowCameras () {
 async function chooseSource (index, value) {
   const input = state.inputs[index]
   if (value === 'allow') return allowCameras()
+  if (value === 'lab') {
+    mixer.render()
+    return shaderLab.open(index)
+  }
   if (value === 'off') {
     input.kind = 'none'
     input.deviceId = ''
@@ -229,6 +249,7 @@ function replaceState (project) {
   controls.refresh()
   mixer.render()
   chain.render()
+  shaderLab.sync()
   touchTitle()
   return warnings
 }
@@ -388,6 +409,7 @@ menu = createAppMenu({
     undo: () => history.undo(),
     redo: () => history.redo(),
     history: () => historyModal.open(),
+    shaderLab: () => shaderLab.open(),
     canUndo: () => history.canUndo(),
     canRedo: () => history.canRedo(),
     fullscreen,
@@ -448,6 +470,9 @@ window.addEventListener('keydown', (event) => {
   } else if (mod && key === 'n') {
     event.preventDefault()
     newProject()
+  } else if (mod && event.shiftKey && key === 'l') {
+    event.preventDefault()
+    shaderLab.open()
   } else if (mod && key === 'i') {
     event.preventDefault()
     toggleClean()
