@@ -30,6 +30,7 @@ export function applyProject (state, project) {
   }
   state.effects.splice(0, state.effects.length, ...ordered)
   state.modulation.modulators.splice(0, state.modulation.modulators.length, ...next.modulation.modulators)
+  state.shaders.splice(0, state.shaders.length, ...next.shaders)
   state.output.width = next.output.width
   state.output.height = next.output.height
   return warnings

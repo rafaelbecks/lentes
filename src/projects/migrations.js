@@ -3,6 +3,13 @@ import { effectDefinition, sanitizeParam } from '../effects/registry.js'
 import { sanitizeModulators } from '../modulation/modulation.js'
 import { PROCEDURAL_IDS } from '../sources/procedural/index.js'
 import {
+  SHADER_CODE_MAX,
+  SHADER_LIMIT,
+  SHADER_NAME_MAX,
+  customShaderId,
+  isCustomShader
+} from '../sources/shadertoy.js'
+import {
   SCHEMA_VERSION,
   SOURCE_KINDS,
   clampNumber,
@@ -46,12 +53,42 @@ function sanitizeParams (id, raw, warnings) {
   return params
 }
 
-function sanitizeInput (index, source, base) {
+function sanitizeShaders (raw, warnings) {
+  const shaders = []
+  const seen = new Set()
+  for (const entry of Array.isArray(raw) ? raw : []) {
+    if (!entry || typeof entry !== 'object') continue
+    const id = typeof entry.id === 'string' && /^[a-z0-9]{1,24}$/.test(entry.id) ? entry.id : ''
+    if (!id || seen.has(id) || typeof entry.code !== 'string') {
+      warnings.push('Ignored a malformed shader')
+      continue
+    }
+    if (shaders.length >= SHADER_LIMIT) {
+      warnings.push(`Kept the first ${SHADER_LIMIT} shaders`)
+      break
+    }
+    if (entry.code.length > SHADER_CODE_MAX) {
+      warnings.push(`Ignored shader "${id}": code is longer than ${SHADER_CODE_MAX} characters`)
+      continue
+    }
+    seen.add(id)
+    const name = cleanName(entry.name, `Shader ${shaders.length + 1}`).slice(0, SHADER_NAME_MAX)
+    shaders.push({ id, name, code: entry.code })
+  }
+  return shaders
+}
+
+function validShader (value, shaders) {
+  if (PROCEDURAL_IDS.includes(value)) return true
+  return isCustomShader(value) && shaders.some((shader) => shader.id === customShaderId(value))
+}
+
+function sanitizeInput (index, source, base, shaders) {
   const input = { ...base }
   input.kind = SOURCE_KINDS.includes(source.kind) ? source.kind : 'camera'
   input.deviceId = cleanId(source.deviceId)
   input.label = cleanName(source.label, '')
-  input.shader = PROCEDURAL_IDS.includes(source.shader) ? source.shader : base.shader
+  input.shader = validShader(source.shader, shaders) ? source.shader : base.shader
   input.speed = clampNumber(source.speed, 0, 4, 1)
   input.width = Math.round(clampNumber(source.width, 160, 1920, 1280))
   input.height = Math.round(clampNumber(source.height, 120, 1080, 720))
@@ -76,12 +113,13 @@ function sanitizeCurrent (data, warnings) {
     mixer: { ...base.mixer },
     effects: [],
     modulation: { modulators: [] },
+    shaders: sanitizeShaders(data.shaders, warnings),
     output: { ...base.output }
   }
   const inputs = Array.isArray(data.inputs) ? data.inputs : []
   for (let i = 0; i < 3; i++) {
     const source = inputs[i] && typeof inputs[i] === 'object' ? inputs[i] : {}
-    project.inputs.push(sanitizeInput(i, source, base.inputs[i]))
+    project.inputs.push(sanitizeInput(i, source, base.inputs[i], project.shaders))
   }
   const mixer = data.mixer && typeof data.mixer === 'object' ? data.mixer : {}
   project.mixer.mode = MIXER_IDS.has(mixer.mode) ? mixer.mode : 'solo'
@@ -159,19 +197,20 @@ export function migrateV1 (data) {
 /**
  * Bring a parsed project document up to the current schema.
  * Returns a new object. Does not keep live camera objects.
+ * v2 → v3 only adds imported Shadertoy code (`shaders`, empty for v2 files).
  */
 export function migrate (data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     throw new Error('Project file is not a JSON object')
   }
   if (data.format !== 'lente') {
-    throw new Error('This file is not a LENTE project')
+    throw new Error('This file is not a LENTES project')
   }
   const warnings = []
   let version = Number(data.version)
   if (!Number.isInteger(version)) throw new Error('Project version is missing')
   if (version > SCHEMA_VERSION) {
-    throw new Error(`Project version ${version} is newer than this LENTE (${SCHEMA_VERSION})`)
+    throw new Error(`Project version ${version} is newer than this LENTES (${SCHEMA_VERSION})`)
   }
   let current = data
   if (version === 0) {
@@ -183,6 +222,10 @@ export function migrate (data) {
     current = migrateV1(current)
     version = 2
     warnings.push('Upgraded a version 1 project (noise is now grained-style grain)')
+  }
+  if (version === 2) {
+    current = { ...current, version: 3, shaders: [] }
+    version = 3
   }
   if (version !== SCHEMA_VERSION) throw new Error(`Project version ${version} is not supported`)
   return { project: sanitizeCurrent(current, warnings), warnings }

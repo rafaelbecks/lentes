@@ -17,7 +17,7 @@ const ALL_IDS = EFFECT_DEFINITIONS.map((entry) => entry.id)
 test('default project round-trips through the current schema', () => {
   const project = createDefaultProject()
   const loaded = migrate(JSON.parse(toDocument(project)))
-  assert.equal(SCHEMA_VERSION, 2)
+  assert.equal(SCHEMA_VERSION, 3)
   assert.equal(loaded.warnings.length, 0)
   assert.deepEqual(loaded.project, serializeProject(project))
   assert.equal(JSON.stringify(loaded.project).includes('MediaStream'), false)
@@ -44,7 +44,7 @@ test('version 1 projects migrate: noise becomes grain, new effects are appended'
     mixer: { mode: 'blend', weights: [0.2, 0.3, 0.5], blend: 'difference' },
     inputs: [{ deviceId: 'cam-a', label: 'Door', width: 640, height: 480, frameRate: 24 }]
   })
-  assert.equal(project.version, 2)
+  assert.equal(project.version, SCHEMA_VERSION)
   assert.deepEqual(project.effects.slice(0, 2).map((effect) => effect.id), ['dither', 'noise'])
   assert.equal(project.effects[0].params.mapSize, 8)
   assert.equal(project.effects[0].params.scale, 2)
@@ -158,8 +158,56 @@ test('params are clamped and snapped against the registry schema', () => {
   assert.equal(sanitizeParam(spec('noise', 'animate'), 0, true), false)
 })
 
-test('file names use the .lente extension', () => {
-  assert.equal(isLenteFileName('reel.LENTE'), true)
+test('file names use the .lentes extension', () => {
+  assert.equal(isLenteFileName('reel.LENTES'), true)
+  assert.equal(isLenteFileName('reel.lente'), false)
   assert.equal(isLenteFileName('reel.glow'), false)
-  assert.equal(stripLenteExtension('reel.lente'), 'reel')
+  assert.equal(stripLenteExtension('reel.lentes'), 'reel')
+})
+
+test('version 2 projects open with no shaders', () => {
+  const { project, warnings } = migrate({ ...serializeProject(createDefaultProject()), version: 2, shaders: undefined })
+  assert.equal(project.version, SCHEMA_VERSION)
+  assert.deepEqual(project.shaders, [])
+  assert.equal(warnings.length, 0)
+})
+
+test('imported Shadertoy code is saved in the project and can drive an input', () => {
+  const state = createDefaultProject()
+  state.shaders.push({ id: 'abc123', name: 'Glass', code: 'void mainImage(out vec4 c, in vec2 p) { c = vec4(1.0); }' })
+  state.inputs[1].kind = 'shader'
+  state.inputs[1].shader = 'custom:abc123'
+  const { project, warnings } = migrate(JSON.parse(toDocument(state)))
+  assert.equal(warnings.length, 0)
+  assert.deepEqual(project.shaders, state.shaders)
+  assert.equal(project.inputs[1].shader, 'custom:abc123')
+
+  const target = createDefaultProject()
+  const shaders = target.shaders
+  applyProject(target, project)
+  assert.equal(target.shaders, shaders)
+  assert.equal(target.shaders[0].name, 'Glass')
+})
+
+test('shader entries are sanitized and inputs never point at a missing shader', () => {
+  const base = serializeProject(createDefaultProject())
+  const { project, warnings } = migrate({
+    ...base,
+    shaders: [
+      { id: 'ok1', name: '  Kept  ', code: 'void mainImage(out vec4 c, in vec2 p) {}' },
+      { id: 'ok1', name: 'Duplicate', code: '' },
+      { id: '../bad', name: 'Bad id', code: '' },
+      { id: 'nocode', name: 'No code' },
+      { id: 'huge', name: 'Huge', code: 'x'.repeat(70000) }
+    ],
+    inputs: [
+      { ...base.inputs[0], kind: 'shader', shader: 'custom:gone' },
+      { ...base.inputs[1], kind: 'shader', shader: 'custom:ok1' },
+      base.inputs[2]
+    ]
+  })
+  assert.deepEqual(project.shaders.map((shader) => [shader.id, shader.name]), [['ok1', 'Kept']])
+  assert.equal(project.inputs[0].shader, 'Portal')
+  assert.equal(project.inputs[1].shader, 'custom:ok1')
+  assert.equal(warnings.length, 4)
 })

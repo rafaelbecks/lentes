@@ -69,6 +69,7 @@ export function describeChange (prevFingerprint, nextFingerprint) {
     }
   }
   if (!same(prev.modulation, next.modulation)) parts.push('LFO')
+  if (!same(prev.shaders || [], next.shaders || [])) parts.push('shaders')
   if (!same(prev.output, next.output)) parts.push('output size')
   if (!parts.length) return 'change'
   const label = parts.length <= 3 ? parts.join(', ') : `${parts.slice(0, 3).join(', ')} +${parts.length - 3}`

@@ -73,7 +73,7 @@ function draftKey () {
 
 function fileNameFor (name) {
   const base = stripLenteExtension(name || 'Untitled') || 'Untitled'
-  return `${base}.lente`
+  return `${base}.lentes`
 }
 
 async function remember (handle, projectName) {
@@ -140,8 +140,8 @@ export function createProjectManager ({ getState, replaceState }) {
       const picked = await window.showSaveFilePicker({
         suggestedName: suggested,
         types: [{
-          description: 'LENTE project',
-          accept: { 'application/json': ['.lente'] }
+          description: 'LENTES project',
+          accept: { 'application/json': ['.lentes'] }
         }]
       })
       await writeHandle(picked, text)
@@ -178,7 +178,7 @@ export function createProjectManager ({ getState, replaceState }) {
   async function openHandle (fileHandle) {
     const file = await fileHandle.getFile()
     if (!isLenteFileName(file.name) && !file.name.endsWith('.json')) {
-      throw new Error('Choose a .lente project')
+      throw new Error('Choose a .lentes project')
     }
     const data = JSON.parse(await file.text())
     const { project, warnings } = migrate(data)
@@ -194,8 +194,8 @@ export function createProjectManager ({ getState, replaceState }) {
     const [picked] = await window.showOpenFilePicker({
       multiple: false,
       types: [{
-        description: 'LENTE project',
-        accept: { 'application/json': ['.lente'] }
+        description: 'LENTES project',
+        accept: { 'application/json': ['.lentes'] }
       }]
     })
     return openHandle(picked)

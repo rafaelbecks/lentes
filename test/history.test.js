@@ -65,7 +65,7 @@ test('an edit after undo drops the redo branch; redo after drift commits instead
 
 test('keeps at most 20 moments and persists per project key', async () => {
   const storage = memoryStorage()
-  const first = setup(storage, 'file:a.lente')
+  const first = setup(storage, 'file:a.lentes')
   first.history.anchor('open')
   for (let i = 0; i < 30; i++) {
     first.state.mixer.crossfade = i / 100
@@ -73,7 +73,7 @@ test('keeps at most 20 moments and persists per project key', async () => {
   }
   assert.equal(first.history.list().entries.length, MAX_ENTRIES)
 
-  const second = setup(storage, 'file:a.lente')
+  const second = setup(storage, 'file:a.lentes')
   second.state.mixer.crossfade = 0.29
   second.history.anchor('open')
   assert.equal(second.history.list().entries.length, MAX_ENTRIES)

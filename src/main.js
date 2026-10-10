@@ -342,7 +342,7 @@ async function saveAs () {
     history.rekey()
     controls.refreshValues()
     touchTitle()
-    status.textContent = result.downloaded ? `Downloaded ${result.name}.lente` : `Saved ${result.name}`
+    status.textContent = result.downloaded ? `Downloaded ${result.name}.lentes` : `Saved ${result.name}`
   } catch (error) {
     if (error?.name === 'AbortError') return
     report(error)

@@ -94,7 +94,7 @@ export function createDialogs (root) {
     askName (name) {
       return open({
         heading: 'Save project',
-        text: 'The file is JSON with a .lente extension.',
+        text: 'The file is JSON with a .lentes extension.',
         confirmLabel: 'Save',
         showName: true,
         name

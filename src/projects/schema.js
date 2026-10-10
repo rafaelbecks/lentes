@@ -1,8 +1,8 @@
 import { defaultEffects } from '../effects/registry.js'
 
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 export const APP_VERSION = '0.2.0'
-export const LENTE_EXTENSION = '.lente'
+export const LENTE_EXTENSION = '.lentes'
 export const INPUT_COUNT = 3
 
 export const SOURCE_KINDS = ['none', 'camera', 'shader']
@@ -52,6 +52,7 @@ export function createDefaultProject () {
     },
     effects: defaultEffects(),
     modulation: { modulators: [] },
+    shaders: [],
     output: {
       width: 1280,
       height: 720
@@ -96,6 +97,7 @@ export function serializeProject (state) {
         cubicBezier: mod.cubicBezier.slice()
       }))
     },
+    shaders: (state.shaders || []).map(({ id, name, code }) => ({ id, name, code })),
     output: {
       width: state.output.width,
       height: state.output.height
@@ -118,5 +120,5 @@ export function isLenteFileName (name) {
 }
 
 export function stripLenteExtension (name) {
-  return String(name || '').replace(/\.lente$/i, '')
+  return String(name || '').replace(/\.lentes$/i, '')
 }
