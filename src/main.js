@@ -1,10 +1,11 @@
-import { createDefaultProject, serializeProject } from './projects/schema.js'
+import { createDefaultProject, isLenteFileName, serializeProject } from './projects/schema.js'
 import { applyProject } from './projects/apply.js'
 import { createProjectManager } from './projects/project-manager.js'
 import { createRenderer } from './renderer/renderer.js'
 import { createDeviceManager, cameraErrorMessage, probeCameraPermission } from './inputs/device-manager.js'
 import { createVideoInput } from './inputs/video-input.js'
 import { createFileInput, isMediaFile } from './inputs/file-input.js'
+import { fileFromDropEvent, registerServiceWorker, setupLaunchQueue } from './pwa.js'
 import { createHistory } from './history/history.js'
 import { applyModulation, modulatedCategories } from './modulation/modulation.js'
 import { createAppMenu } from './ui/app-menu.js'
@@ -601,7 +602,7 @@ window.addEventListener('dragleave', () => {
 window.addEventListener('drop', async (event) => {
   event.preventDefault()
   document.body.classList.remove('is-dragover')
-  const file = event.dataTransfer?.files?.[0]
+  const { file, fileHandle } = await fileFromDropEvent(event)
   if (!file) return
   if (isMediaFile(file)) {
     const slot = state.inputs.findIndex((input) => input.kind === 'none')
@@ -609,6 +610,15 @@ window.addEventListener('drop', async (event) => {
     return
   }
   if (!(await confirmDiscard())) return
+  if (fileHandle && isLenteFileName(file.name)) {
+    try {
+      const result = await history.runWithout(() => projects.openHandle(fileHandle))
+      await afterOpen(result)
+    } catch (error) {
+      if (error?.name !== 'AbortError') report(error)
+    }
+    return
+  }
   openFile(file)
 })
 
@@ -647,7 +657,25 @@ function frame (now) {
 }
 
 const splashRoot = document.querySelector('#splash')
-if (splashRoot) createSplash({ root: splashRoot })
+const splash = splashRoot ? createSplash({ root: splashRoot }) : null
+
+async function openLaunchedFile (fileHandle) {
+  if (!fileHandle || fileHandle.kind !== 'file') return
+  const file = await fileHandle.getFile()
+  if (!isLenteFileName(file.name)) {
+    status.textContent = 'Open a .lentes project'
+    return
+  }
+  splash?.enter()
+  if (!(await confirmDiscard())) return
+  const result = await history.runWithout(() => projects.openHandle(fileHandle))
+  await afterOpen(result)
+}
+
+setupLaunchQueue((fileHandle) => openLaunchedFile(fileHandle).catch((error) => {
+  if (error?.name !== 'AbortError') report(error)
+}))
+registerServiceWorker()
 
 history.anchor('new project')
 touchTitle()

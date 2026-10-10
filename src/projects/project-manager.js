@@ -7,6 +7,14 @@ import {
 } from './schema.js'
 import { migrate } from './migrations.js'
 
+const LENTE_TYPE = {
+  description: 'LENTES project',
+  accept: {
+    'application/vnd.lentes.project+json': ['.lentes'],
+    'application/json': ['.lentes']
+  }
+}
+
 const RECENT_KEY = 'lente_recent_projects'
 const RECENT_LIMIT = 8
 
@@ -139,10 +147,7 @@ export function createProjectManager ({ getState, replaceState }) {
     if (window.showSaveFilePicker) {
       const picked = await window.showSaveFilePicker({
         suggestedName: suggested,
-        types: [{
-          description: 'LENTES project',
-          accept: { 'application/json': ['.lentes'] }
-        }]
+        types: [LENTE_TYPE]
       })
       await writeHandle(picked, text)
       const file = await picked.getFile()
@@ -193,10 +198,7 @@ export function createProjectManager ({ getState, replaceState }) {
     if (!window.showOpenFilePicker) return { needsInput: true }
     const [picked] = await window.showOpenFilePicker({
       multiple: false,
-      types: [{
-        description: 'LENTES project',
-        accept: { 'application/json': ['.lentes'] }
-      }]
+      types: [LENTE_TYPE]
     })
     return openHandle(picked)
   }
@@ -231,6 +233,7 @@ export function createProjectManager ({ getState, replaceState }) {
     save,
     saveAs,
     open,
+    openHandle,
     openText,
     openRecent,
     noteClean: markClean,

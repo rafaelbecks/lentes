@@ -1,0 +1,53 @@
+{
+  "id": "/",
+  "name": "LENTES",
+  "short_name": "LENTES",
+  "description": "Laboratorio de experimentación nodal para transformación de espectros y señales",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0c",
+  "theme_color": "#0a0a0c",
+  "lang": "es",
+  "categories": ["graphics", "entertainment"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "/",
+      "name": "LENTES project",
+      "accept": {
+        "application/vnd.lentes.project+json": [".lentes"],
+        "application/json": [".lentes"]
+      },
+      "icons": [
+        {
+          "src": "assets/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ],
+      "launch_type": "single-client"
+    }
+  ]
+}
