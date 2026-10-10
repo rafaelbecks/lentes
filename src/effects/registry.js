@@ -122,6 +122,38 @@ export const EFFECT_DEFINITIONS = [
     ]
   },
   {
+    id: 'displace',
+    name: 'Glass displacement',
+    label: 'DISPLACE',
+    description: 'Shadertoy WXKyWc (after Three.js Journey lesson 45): a normal map pushes the picture sideways and lights the slopes. The normals are drawn here as ripples (drag the center), noise, or tiles.',
+    enabled: false,
+    auxiliary: [],
+    defaults: {
+      pattern: 'ripple',
+      strength: 0.1,
+      scale: 6,
+      relief: 1,
+      bevel: 0.3,
+      speed: 0.25,
+      light: 1,
+      lightAngle: 135,
+      centerX: 0.5,
+      centerY: 0.5
+    },
+    params: [
+      { key: 'pattern', label: 'Normals', type: 'list', options: { Ripples: 'ripple', Noise: 'noise', Tiles: 'tiles' } },
+      { key: 'strength', label: 'Strength', type: 'slider', min: 0, max: 0.5, step: 0.001 },
+      { key: 'scale', label: 'Scale', type: 'slider', min: 0.5, max: 40, step: 0.1 },
+      { key: 'relief', label: 'Relief', type: 'slider', min: 0, max: 4, step: 0.01 },
+      { key: 'bevel', label: 'Tile bevel', type: 'slider', min: 0.02, max: 1, step: 0.01 },
+      { key: 'speed', label: 'Speed', type: 'slider', min: 0, max: 4, step: 0.01 },
+      { key: 'light', label: 'Light', type: 'slider', min: 0, max: 3, step: 0.01 },
+      { key: 'lightAngle', label: 'Light angle', type: 'slider', min: 0, max: 360, step: 1 },
+      { key: 'centerX', label: 'Center X', type: 'slider', min: 0, max: 1, step: 0.001 },
+      { key: 'centerY', label: 'Center Y', type: 'slider', min: 0, max: 1, step: 0.001 }
+    ]
+  },
+  {
     id: 'mask',
     name: 'Shape mask',
     label: 'MASK',
@@ -278,6 +310,12 @@ export const MASK_SHAPE_INDEX = {
   polygon: 3,
   star: 4,
   ring: 5
+}
+
+export const DISPLACE_PATTERN_INDEX = {
+  ripple: 0,
+  noise: 1,
+  tiles: 2
 }
 
 export function effectDefinition (id) {

@@ -88,7 +88,7 @@ export function createControls ({ container, state, getTime, onChange, onFormat 
         changed()
       })
     }
-    if (id === 'glass' || id === 'mask') {
+    if (id === 'glass' || id === 'mask' || id === 'displace') {
       fxFolder.addButton({ title: 'Center' }).on('click', () => {
         effect.params.centerX = 0.5
         effect.params.centerY = 0.5

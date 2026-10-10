@@ -1,6 +1,6 @@
 /**
- * Drag the glass pane (GLOW lets you move it with the pointer) or the shape
- * mask directly on the output. Coordinates are normalized, top-left origin,
+ * Drag the glass pane (GLOW lets you move it with the pointer), the shape
+ * mask, or the center of the displacement ripples directly on the output. Coordinates are normalized, top-left origin,
  * inside the letterboxed canvas picture.
  */
 
@@ -51,7 +51,9 @@ export function bindStageDrag ({ canvas, state, onChange }) {
     const glass = hitGlass(uv)
     if (glass) return glass
     const mask = effect('mask')
-    return mask?.enabled ? mask : null
+    if (mask?.enabled) return mask
+    const displace = effect('displace')
+    return displace?.enabled && displace.params.pattern === 'ripple' ? displace : null
   }
 
   canvas.addEventListener('pointermove', (event) => {

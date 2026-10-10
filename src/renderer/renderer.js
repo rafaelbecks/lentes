@@ -5,6 +5,7 @@ import { COLOR_FRAG } from '../shaders/color.frag.js'
 import { CHROMATIC_FRAG } from '../shaders/chromatic.frag.js'
 import { GLASS_FRAG } from '../shaders/glass.frag.js'
 import { RAIN_FRAG } from '../shaders/rain.frag.js'
+import { DISPLACE_FRAG } from '../shaders/displace.frag.js'
 import { MASK_FRAG } from '../shaders/mask.frag.js'
 import { DITHER_FRAG } from '../shaders/dither.frag.js'
 import { NOISE_FRAG } from '../shaders/noise.frag.js'
@@ -12,7 +13,7 @@ import { OVERLAY_FRAG } from '../shaders/overlay.frag.js'
 import { BLIT_FRAG } from '../shaders/blit.frag.js'
 import { blendModeIndex, mixerModeIndex } from '../mixer/blend.js'
 import { colorIsIdentity, hexToRgb } from '../effects/color-math.js'
-import { MASK_SHAPE_INDEX, OVERLAY_MODE_INDEX } from '../effects/registry.js'
+import { DISPLACE_PATTERN_INDEX, MASK_SHAPE_INDEX, OVERLAY_MODE_INDEX } from '../effects/registry.js'
 import { proceduralSource } from '../sources/procedural/index.js'
 import { createPass } from './program.js'
 
@@ -108,6 +109,7 @@ export function createRenderer (canvas) {
       chromatic: pass(CHROMATIC_FRAG),
       glass: pass(GLASS_FRAG),
       rain: pass(RAIN_FRAG),
+      displace: pass(DISPLACE_FRAG),
       mask: pass(MASK_FRAG),
       dither: pass(DITHER_FRAG),
       noise: pass(NOISE_FRAG),
@@ -285,6 +287,20 @@ export function createRenderer (canvas) {
       gl.uniform1f(u.u_timeScale, p.timeScale)
       gl.uniform1f(u.u_patternDrift, p.patternDrift)
       gl.uniform1f(u.u_sharpness, p.sharpness)
+    },
+    displace (source, p, frame) {
+      const u = use(passes.displace, source)
+      const angle = p.lightAngle * DEG
+      gl.uniform2f(u.uResolution, frame.width, frame.height)
+      gl.uniform1f(u.uTime, frame.time * p.speed)
+      gl.uniform1i(u.uPattern, DISPLACE_PATTERN_INDEX[p.pattern] ?? 0)
+      gl.uniform2f(u.uCenter, p.centerX, 1 - p.centerY)
+      gl.uniform1f(u.uScale, p.scale)
+      gl.uniform1f(u.uRelief, p.relief)
+      gl.uniform1f(u.uBevel, p.bevel)
+      gl.uniform1f(u.uStrength, p.strength)
+      gl.uniform1f(u.uLight, p.light)
+      gl.uniform3f(u.uLightDir, Math.cos(angle), Math.sin(angle), 0)
     },
     mask (source, p, frame) {
       const u = use(passes.mask, source)
