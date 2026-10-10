@@ -8,7 +8,7 @@ Up to three sources are mixed on the GPU and sent through a reorderable chain of
 
 ## Run
 
-The live site is [lentes.netlify.app](https://lentes.netlify.app/). Cameras need localhost or https.
+The live site is [lentes.luminode.studio](https://lentes.luminode.studio/). Cameras need localhost or https.
 
 ```sh
 npm install

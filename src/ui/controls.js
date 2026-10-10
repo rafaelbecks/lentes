@@ -1,4 +1,4 @@
-import { Pane } from '../../node_modules/tweakpane/dist/tweakpane.js'
+import { Pane } from '../lib/tweakpane.min.js'
 import * as EssentialsPlugin from '../lib/tweakpane-plugin-essentials.min.js'
 import * as WaveformPlugin from '../lib/tweakpane-plugin-waveform.min.js'
 import { effectDefinition } from '../effects/registry.js'
