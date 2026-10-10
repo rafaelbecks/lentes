@@ -1,0 +1,7 @@
+# The page imports Tweakpane from node_modules, which is not in git.
+[build]
+  command = "npm ci --omit=dev"
+  publish = "."
+
+[build.environment]
+  NODE_VERSION = "22"
