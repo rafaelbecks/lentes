@@ -2,7 +2,7 @@
   "name": "lente",
   "version": "0.2.0",
   "private": true,
-  "description": "LENTE — experimental real-time video mixer. Luminode Studio.",
+  "description": "LENTE — Laboratorio de experimentación nodal para transformación de espectros y señales.",
   "type": "module",
   "author": "Rafael Becerra",
   "license": "GPL-3.0-or-later",

@@ -1,0 +1,15 @@
+{
+  "format": "luminode-app",
+  "version": 1,
+  "id": "lente",
+  "name": "LENTES",
+  "operator": "/index.html",
+  "output": "/output.html",
+  "defaults": {
+    "width": 1280,
+    "height": 720,
+    "frameRate": 60,
+    "alpha": false
+  },
+  "permissions": ["camera"]
+}

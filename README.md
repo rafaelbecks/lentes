@@ -1,6 +1,6 @@
 # LENTE
 
-Experimental real-time video mixer for [Luminode Studio](https://luminode.studio/). The name is LENTE. Its Spanish acronym is not finalized.
+Experimental real-time video mixer for [Luminode Studio](https://luminode.studio/). LENTE is Laboratorio de experimentación nodal para transformación de espectros y señales.
 
 LENTE mixes up to three sources (local cameras or GLOW procedural shaders) on the GPU and runs them through a reorderable chain of effects. It is an instrument, not a timeline editor.
 

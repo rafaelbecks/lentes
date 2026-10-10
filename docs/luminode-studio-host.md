@@ -18,8 +18,9 @@ owns the offscreen window, paint lifecycle, exact pixel sizing, FPS reporting,
 optional alpha, and preview. This is a much smaller maintenance surface than
 owning a CEF fork.
 
-The host should live in its own repository. LENTE remains a browser app and
-implements the shared Luminode operator/output contract described below.
+The host lives in the `host/` package of the luminode-studio repository. It opens
+this website as the shelf and launches each diskette. LENTE remains a browser
+app and implements the shared operator/output contract described below.
 
 ## What the three reference projects establish
 
@@ -98,9 +99,9 @@ Each Studio app should provide a manifest similar to:
   "format": "luminode-app",
   "version": 1,
   "id": "studio.luminode.lente",
-  "name": "LENTE",
-  "operator": "/index.html?surface=operator",
-  "output": "/index.html?surface=output",
+  "name": "LENTES",
+  "operator": "/index.html",
+  "output": "/output.html",
   "defaults": {
     "width": 1280,
     "height": 720,
@@ -144,6 +145,13 @@ engine/controller split:
 - a shared protocol applies serialized state and incremental patches;
 - camera previews return as low-rate thumbnails/status, not duplicated
   camera streams.
+
+The first version of this split is in place. `output.html` (`src/output.js`)
+renders only the canvas. The operator sends the whole serialized project over
+the `lentes-program` BroadcastChannel after each edit (`src/program-link.js`),
+together with its `performance.timeOrigin` so both sides run the same clock.
+The output page opens its own cameras for now. It reports its pixel size
+through the host preload, and the host resizes the Syphon/Spout sender to match.
 
 This split is the reusable Luminode Studio contract. Validate it with LENTE
 before adapting GLOW or MUSGO.

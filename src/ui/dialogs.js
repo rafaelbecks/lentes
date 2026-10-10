@@ -89,7 +89,7 @@ export function createDialogs (root) {
 
   return {
     confirm (text) {
-      return open({ heading: 'LENTE', text, confirmLabel: 'Continue' })
+      return open({ heading: 'LENTES', text, confirmLabel: 'Continue' })
     },
     askName (name) {
       return open({
@@ -102,8 +102,8 @@ export function createDialogs (root) {
     },
     about () {
       return open({
-        heading: 'LENTE',
-        text: 'Experimental video mixer. Part of Luminode Studio. The Spanish acronym is not finalized.',
+        heading: 'LENTES',
+        text: 'Laboratorio de experimentación nodal para transformación de espectros y señales. Real-time video mixer for Luminode Studio.',
         confirmLabel: 'Close'
       })
     },

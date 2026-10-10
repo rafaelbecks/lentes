@@ -1,5 +1,5 @@
 /**
- * LENTE / File / Edit / View bar.
+ * LENTES / File / Edit / View bar.
  * Same interaction as GLOW's and MUSGO's app menus: click to open, hover to
  * move, escape to close. Items may be checkboxes, separators, or carry an
  * `enabled()` predicate (MUSGO Edit menu).
@@ -10,10 +10,10 @@ export function createAppMenu ({ parent, actions = {} } = {}) {
   const menus = [
     {
       id: 'lente',
-      label: 'LENTE',
+      label: 'LENTES',
       brand: true,
       items: [
-        { id: 'about', label: 'About LENTE' },
+        { id: 'about', label: 'About LENTES' },
         { id: 'studio', label: 'luminode.studio ↗' }
       ]
     },

@@ -3,15 +3,27 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LENTE</title>
+    <title>LENTES</title>
     <meta name="theme-color" content="#0a0a0c" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%2351cf66' stroke-width='2'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil:wght@100..900&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./src/styles/app.css" />
   </head>
   <body>
+    <section id="splash" aria-label="LENTES">
+      <div class="splash__center">
+        <h1 class="splash__title" aria-label="LENTES">
+          <span class="splash__layer" aria-hidden="true">LENTES</span>
+          <span class="splash__layer" aria-hidden="true">LENTES</span>
+          <span class="splash__layer" aria-hidden="true">LENTES</span>
+        </h1>
+        <p class="splash__subtitle">laboratorio de experimentación nodal<br />para transformación de espectros y señales</p>
+        <p class="splash__hint">click · space</p>
+      </div>
+    </section>
+
     <header class="chrome chrome-bar">
       <div id="app-menu"></div>
       <span id="project-name">Untitled</span>
@@ -21,7 +33,7 @@
 
     <div id="stage">
       <div id="program-preview" aria-label="Program preview">
-        <canvas id="output" aria-label="LENTE output"></canvas>
+        <canvas id="output" aria-label="LENTES output"></canvas>
       </div>
       <p id="hint">Pick a camera or a shader on an input strip</p>
       <p id="boot" hidden></p>
@@ -32,7 +44,7 @@
 
     <div id="modal" class="modal" hidden>
       <form class="modal__panel">
-        <h2 id="modal-title">LENTE</h2>
+        <h2 id="modal-title">LENTES</h2>
         <p id="modal-body"></p>
         <label id="modal-name-field">
           Name

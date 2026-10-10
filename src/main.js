@@ -14,6 +14,9 @@ import { createEffectChain } from './ui/effect-chain.js'
 import { createControls } from './ui/controls.js'
 import { bindStageDrag } from './ui/stage-drag.js'
 import { createPreviewFitter } from './ui/preview-fit.js'
+import { bindPanelResize } from './ui/panel-resize.js'
+import { createSplash } from './ui/splash.js'
+import { createProgramSender } from './program-link.js'
 
 const state = createDefaultProject()
 const title = document.querySelector('#project-name')
@@ -29,7 +32,7 @@ const previewFrame = document.querySelector('#program-preview')
 window.addEventListener('error', (event) => {
   boot.hidden = false
   boot.dataset.state = 'error'
-  boot.textContent = event.message || 'LENTE failed to start'
+  boot.textContent = event.message || 'LENTES failed to start'
   hint.hidden = true
 })
 
@@ -56,6 +59,8 @@ const preview = createPreviewFitter({
   frame: previewFrame,
   getOutputSize: () => state.output
 })
+const program = createProgramSender(state)
+bindPanelResize({ onResize: () => preview.sync() })
 
 let clean = false
 let projects = null
@@ -66,7 +71,7 @@ const formatTimers = [0, 0, 0]
 function touchTitle () {
   const mark = projects?.isDirty() ? ' *' : ''
   title.textContent = `${state.name}${mark}`
-  document.title = `${state.name}${mark} — LENTE`
+  document.title = `${state.name}${mark} — LENTES`
 }
 
 function updateHint () {
@@ -84,6 +89,7 @@ function edited (origin) {
   touchTitle()
   history?.noteEdit()
   preview.sync()
+  program.send()
   if (origin !== 'mixer') mixer.render()
   if (origin !== 'chain') chain.render()
   if (origin === 'chain') controls.syncEffect()
@@ -152,6 +158,7 @@ async function connectSlot (index) {
     const rate = actual?.frameRate ? ` @ ${Math.round(actual.frameRate)}` : ''
     mixer.setStatus(index, 'live', `${actual.width}×${actual.height}${rate}`)
     touchTitle()
+    program.send()
   } catch (error) {
     mixer.setStatus(index, 'error', cameraErrorMessage(error))
     report(error)
@@ -218,6 +225,7 @@ async function restoreInputs (only) {
 function replaceState (project) {
   const warnings = applyProject(state, project)
   preview.sync()
+  program.send()
   controls.refresh()
   mixer.render()
   chain.render()
@@ -458,6 +466,7 @@ window.addEventListener('beforeunload', (event) => {
 window.addEventListener('pagehide', () => {
   history.commitNow()
   preview.dispose()
+  program.dispose()
   for (const input of inputs) input.disconnect()
 })
 
@@ -517,8 +526,12 @@ function frame (now) {
   }
 }
 
+const splashRoot = document.querySelector('#splash')
+if (splashRoot) createSplash({ root: splashRoot })
+
 history.anchor('new project')
 touchTitle()
+program.send()
 boot.dataset.state = 'ready'
 boot.hidden = true
 updateHint()
