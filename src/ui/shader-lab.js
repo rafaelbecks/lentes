@@ -125,7 +125,9 @@ function createPreview (canvas) {
     if (pass) gl.deleteProgram(pass.program)
     for (const texture of new Set(channels)) gl.deleteTexture(texture)
     gl.deleteVertexArray(vao)
-    gl.getExtension('WEBGL_lose_context')?.loseContext()
+    // getContext() returns this canvas's existing context when the lab opens
+    // again. Explicitly losing it here makes every later compile use a dead
+    // context, so release our resources and leave the context reusable.
     gl = null
     pass = null
     channels = []
